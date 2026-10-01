@@ -10,7 +10,7 @@ export default function Home() {
             </span>
             <div>
               <p className="text-sm font-semibold leading-tight">EnROOT Group 5</p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">15th ROOT · SUTD</p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">15th ROOT, SUTD</p>
             </div>
           </div>
           <a
@@ -31,7 +31,7 @@ export default function Home() {
         </h1>
         <p className="mt-3 max-w-prose text-base leading-7 text-zinc-600 dark:text-zinc-400">
           This is the build shell for EnROOT Group 5&apos;s event site. The theme
-          and activity are drawn 3–4 Oct — we build the real thing around it.
+          and activity are drawn 3-4 Oct. We build the real thing around it.
           Until then this page stays honest: a placeholder, not a product.
         </p>
 
@@ -43,10 +43,10 @@ export default function Home() {
           <ol className="mt-4 space-y-4">
             {[
               { label: "1 Oct", detail: "Events briefing", done: true },
-              { label: "3–4 Oct", detail: "Theme + activity drawn", done: false },
-              { label: "From 14 Oct", detail: "Draw lots → pick event week", done: false },
+              { label: "3-4 Oct", detail: "Theme + activity drawn", done: false },
+              { label: "From 14 Oct", detail: "Draw lots, then pick event week", done: false },
               { label: "1 Nov", detail: "Publicity material (poster + IG)", done: false },
-              { label: "5–27 Nov", detail: "Event day", done: false },
+              { label: "5-27 Nov", detail: "Event day", done: false },
               { label: "14 Dec", detail: "Final members revealed", done: false },
             ].map((step, i) => (
               <li key={i} className="flex items-start gap-3">
@@ -57,7 +57,7 @@ export default function Home() {
                       : "border border-zinc-300 text-zinc-500 dark:border-zinc-700 dark:text-zinc-400"
                   }`}
                 >
-                  {step.done ? "✓" : i + 1}
+                  {i + 1}
                 </span>
                 <div>
                   <p className="text-sm font-medium">{step.label}</p>
