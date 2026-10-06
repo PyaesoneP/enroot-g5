@@ -87,7 +87,7 @@ is fast and requires no infrastructure management.
 
 **Why it matters here:** the maintainer is a first-year student with a real
 courseload. The system must deploy with **zero servers to manage** and zero
-downtime during the publicity window (1 Nov -> 20 Nov). "I have to SSH into a
+downtime during the publicity window (1 Nov -> 19 Nov). "I have to SSH into a
 box and restart a process" is a deployability failure for this team.
 
 **Satisfied by:**
