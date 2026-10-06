@@ -29,9 +29,9 @@ blocked on deciding what the bot does at the event.
 ## Conventions
 
 - ADRs are numbered in the order they were made (001..010). "Accepted" =
-  decided and in effect; "Pending" = a real decision is owed, with a known
-  blocker.
+ decided and in effect; "Pending" = a real decision is owed, with a known
+ blocker.
 - Component names in Doc 3 match the names used in Doc 2 (Consequences) and
-  Doc 4 (style mapping).
+ Doc 4 (style mapping).
 - Mermaid diagrams render on GitHub. If you read this in a raw viewer, the
-  diagram source is the block itself.
+ diagram source is the block itself.

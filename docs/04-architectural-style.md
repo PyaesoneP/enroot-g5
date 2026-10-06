@@ -1,7 +1,7 @@
 # 4. Architectural Style
 
 An **architectural style** is a named, reusable configuration of components and
-connections: a vocabulary of patterns (client–server, layered, blackboard,
+connections: a vocabulary of patterns (client-server, layered, blackboard,
 event-driven, ...) that, once named, let a reader *predict* how the system
 behaves. Most real systems are not one textbook style; they are a **hybrid**
 where different parts of the system follow different styles. This doc does that
@@ -11,7 +11,7 @@ present ones, because it tells a reviewer what to expect *not* to find).
 
 ## 4.1 The style in one line
 
-> A **layered, serverless client–server** system: a static-first Next.js
+> A **layered, serverless client-server** system: a static-first Next.js
 > front end and a Python Telegram bot as two thin front ends over a **managed
 > BaaS blackboard**, with **strategy/plug-in** seams isolating the two
 > undecided features (the activity and the bot's behavior).
@@ -20,7 +20,7 @@ Everything below unpacks that sentence.
 
 ## 4.2 Style inventory (what the system is)
 
-### 4.2.1 Client–server (base style)
+### 4.2.1 Client-server (base style)
 
 **Where:** the whole system.
 
@@ -30,19 +30,19 @@ handlers, the database). The client renders and collects intent; the server
 authenticates, validates, and persists. No peer-to-peer element exists.
 
 **Why it fits.** The audience is on phones in a crowd; the authority for "is
-this a valid wall post" must live server-side (ADR-009). Client–server is the
+this a valid wall post" must live server-side (ADR-009). Client-server is the
 obvious base; nothing more exotic is warranted.
 
 ### 4.2.2 Layered
 
-**Where:** the web system (C1 → C3a → C3b → C4).
+**Where:** the web system (C1 -> C3a -> C3b -> C4).
 
 **Mapping.** Responsibilities stack in strict layers with one-way dependencies:
 
 ```
-Presentation (C1, C2)     — knows about operations, not queries
-Application (C3a, C3b)    — knows about operations + store shape
-Data (C4)                 — knows about rows and RLS
+Presentation (C1, C2)   - knows about operations, not queries
+Application (C3a, C3b)   - knows about operations + store shape
+Data (C4)         - knows about rows and RLS
 ```
 
 A layer only talks to the layer directly below it. C1 never sees Supabase; C3a
@@ -50,7 +50,7 @@ never sees a table schema (it calls C3b). C2 sits *inside* the presentation
 layer but is a further isolated slot (4.2.6).
 
 **Why it fits.** It is the cheapest way to get the maintainability we actually
-need (Doc 1 §1.1): the "swap the store" and "swap the activity" moves are
+need (Doc 1 1.1): the "swap the store" and "swap the activity" moves are
 contained because the dependencies point one direction. For a one-person team,
 layer discipline is a substitute for a team's code review.
 
@@ -67,7 +67,7 @@ not a "layer" of the site; it is a sibling front end.
 endpoints are stateless functions invoked per request; the static site is a CDN
 artifact. "Deployment" = a push (ADR-007).
 
-**Why it fits.** It is the direct expression of deployability (Doc 1 §1.3): the
+**Why it fits.** It is the direct expression of deployability (Doc 1 1.3): the
 maintainer cannot run a server, so the style must not require one. It also means
 the system's cost is near zero at rest, which matches a one-day event.
 
@@ -89,10 +89,10 @@ which are Vercel's, not ours).
 absorb: operating a database server. It is also the ROOTech-recommended stack,
 which matters for the evaluation.
 
-**Style interaction.** BaaS + serverless + client–server is a common trio: the
+**Style interaction.** BaaS + serverless + client-server is a common trio: the
 BaaS is the "server" that the serverless functions talk to, and the client talks
 to the BaaS only for the auth handshake (the dotted edge in Doc 3.3). We keep
-that client→BaaS edge deliberately narrow.
+that client->BaaS edge deliberately narrow.
 
 ### 4.2.5 Blackboard (shared-data)
 
@@ -112,7 +112,7 @@ inter-service API) for a system this small. It is also what makes the bot
 **Boundaries / risks of the style.** Blackboard coordination is eventual by
 construction: if the bot writes a wall post, the site reflects it on its next
 read, not instantly (fine: the wall is not a live feed). It also means schema
-changes ripple to both consumers at once — which is exactly why the data layer
+changes ripple to both consumers at once - which is exactly why the data layer
 (C3b) is the single place the schema is expressed (Doc 3.2).
 
 ### 4.2.6 Strategy / plug-in (in two places)
@@ -126,10 +126,10 @@ a fixed **interface** owned by the system, and interchangeable
 system depends on the interface, never on the concrete implementation.
 
 **Why it fits.** It is the direct expression of the single biggest project risk
-— the activity (and the bot behavior) are genuinely undecided — turned into a
+ - the activity (and the bot behavior) are genuinely undecided - turned into a
 *design* property: the undecidedness is quarantined behind two seams, so the
 decisions can land late without rippling. This is the style that most directly
-serves maintainability (Doc 1 §1.1).
+serves maintainability (Doc 1 1.1).
 
 **Note on scope.** This is *not* a general plugin architecture (no manifest
 files, no runtime discovery, no third-party modules). It is a two-slot strategy
@@ -138,14 +138,14 @@ config pointer" is the honest label.
 
 ### 4.2.7 Static-first / SSG (a content-delivery style)
 
-**Where:** C6 → C1, and the CDN in the deployment view.
+**Where:** C6 -> C1, and the CDN in the deployment view.
 
 **Mapping.** The content-delivery style is "bake at build, serve static." C6
 is consumed only at build time; the result is HTML on a CDN. Dynamic regions are
 the exception, not the rule.
 
 **Why it fits.** It is the content-side half of serverless: it is what makes the
-site fast on phones (usability, Doc 1 §1.4) and what means "the site is up" even
+site fast on phones (usability, Doc 1 1.4) and what means "the site is up" even
 if every serverless function were down.
 
 ## 4.3 What the system is *not* (and why the absence matters)
@@ -154,67 +154,67 @@ Naming the absent styles tells a reviewer what to expect **not** to find, which
 is often more useful than the positive list.
 
 - **Not microservices.** There is one deployable (the Next.js app) plus the bot.
-  "Site API" and "bot API" do not exist as separate services; the split is
-  client–server + a second consumer, not N services. Splitting further would buy
-  nothing and cost the team coordination they cannot afford.
+ "Site API" and "bot API" do not exist as separate services; the split is
+ client-server + a second consumer, not N services. Splitting further would buy
+ nothing and cost the team coordination they cannot afford.
 - **Not event-driven at the core.** There is no message bus and no pub/sub
-  backbone. The blackboard (4.2.5) is *shared-data* coordination, not event
-  coordination: consumers poll/read, nothing is pushed to them. If the bot's
-  scheduled feature (a daily word) wins, that one piece is a *scheduled
-  function*, still not an event stream.
+ backbone. The blackboard (4.2.5) is *shared-data* coordination, not event
+ coordination: consumers poll/read, nothing is pushed to them. If the bot's
+ scheduled feature (a daily word) wins, that one piece is a *scheduled
+ function*, still not an event stream.
 - **Not a monolith in the traditional sense.** No single always-on process holds
-  the app. The "monolith" is a static artifact + a handful of functions; the
-  serverless style (4.2.3) removes the long-running core that defines a classic
-  monolith.
+ the app. The "monolith" is a static artifact + a handful of functions; the
+ serverless style (4.2.3) removes the long-running core that defines a classic
+ monolith.
 - **Not a data lake / ETL.** The store is a small OLTP-ish set of four tables,
-  written and read in real time by users. There is no batch pipeline, no
-  warehouse, no transformation layer.
+ written and read in real time by users. There is no batch pipeline, no
+ warehouse, no transformation layer.
 - **Not zero-trust / heavily segmented.** For a one-day campus event with
-  anonymous guests, the security model is RLS + guardrails (ADR-009), not a
-  micro-perimeter network. We deliberately do not over-build the security
-  style past what the threat (accidental/spam UGC) requires (Doc 1 §1.2).
+ anonymous guests, the security model is RLS + guardrails (ADR-009), not a
+ micro-perimeter network. We deliberately do not over-build the security
+ style past what the threat (accidental/spam UGC) requires (Doc 1 1.2).
 - **Not a mobile app / PWA.** It is a responsive web page; "mobile-first" is a
-  layout property (usability), not a native-app or offline-first style. No
-  service-worker offline story, no app-store distribution.
+ layout property (usability), not a native-app or offline-first style. No
+ service-worker offline story, no app-store distribution.
 
 ## 4.4 How the styles compose (the whole picture)
 
 ```mermaid
 flowchart TB
-    subgraph base ["Base: client-server + layered"]
-        direction TB
-        L1["Presentation (C1, C2)"]
-        L2["Application (C3a, C3b)"]
-        L3["Data (C4)"]
-        L1 --> L2 --> L3
-    end
+  subgraph base ["Base: client-server + layered"]
+    direction TB
+    L1["Presentation (C1, C2)"]
+    L2["Application (C3a, C3b)"]
+    L3["Data (C4)"]
+    L1 --> L2 --> L3
+  end
 
-    styleA["Serverless + SSG<br/>(how L1/L2 are delivered)"]
-    styleB["BaaS<br/>(what L3 is)"]
-    styleC["Blackboard<br/>(how C1 and C5 coordinate via L3)"]
-    styleD["Strategy / plug-in<br/>(C2 activity, C5 feature)"]
+  styleA["Serverless + SSG<br/>(how L1/L2 are delivered)"]
+  styleB["BaaS<br/>(what L3 is)"]
+  styleC["Blackboard<br/>(how C1 and C5 coordinate via L3)"]
+  styleD["Strategy / plug-in<br/>(C2 activity, C5 feature)"]
 
-    C5["C5 · Bot (2nd front end)"]
+  C5["C5 - Bot (2nd front end)"]
 
-    styleA -. delivers .-> L1
-    styleB -. is .-> L3
-    styleC -. coordinates .-> L3
-    styleC -. coordinates .-> C5
-    styleD -. isolates .-> C2
-    styleD -. isolates .-> C5
-    C5 --> L3
+  styleA -. delivers .-> L1
+  styleB -. is .-> L3
+  styleC -. coordinates .-> L3
+  styleC -. coordinates .-> C5
+  styleD -. isolates .-> C2
+  styleD -. isolates .-> C5
+  C5 --> L3
 ```
 
 **The composition rule:** the styles are not competing descriptions; they
 describe **different axes** of the same system.
 
-- *Client–server* names the **topology** (who talks to whom).
+- *Client-server* names the **topology** (who talks to whom).
 - *Layered* names the **internal dependency discipline** inside the web path.
 - *Serverless / SSG* names the **delivery/execution** model.
 - *BaaS* names the **data-provider** model.
 - *Blackboard* names the **coordination** model between the two front ends.
 - *Strategy/plug-in* names the **variability** model for the two undecided
-  features.
+ features.
 
 A reader who knows the composition can predict: that a store swap touches one
 module (BaaS + layered), that an activity swap touches one config line
@@ -228,11 +228,11 @@ Honest notes on the two places the current style mix is *not* final, so a
 reviewer knows the open seams:
 
 1. **The bot's runtime (ADR-010, pending).** If the winning bot feature needs a
-   persistent loop, the *serverless* style (4.2.3) is violated for that one
-   component and a cheap VPS is introduced. The rest of the architecture is
-   unaffected; only C5's execution model changes. That is the deliberate
-   isolation of the open decision.
+  persistent loop, the *serverless* style (4.2.3) is violated for that one
+  component and a cheap VPS is introduced. The rest of the architecture is
+  unaffected; only C5's execution model changes. That is the deliberate
+  isolation of the open decision.
 2. **If the activity or the store grows.** A second, concurrent activity, or a
-   need for non-developer content editors, would be the first pressure on the
-   strategy (4.2.6) and content-as-code (ADR-003) choices. Both are contained
-   seams, so growing into them is a local change, not a re-architecture.
+  need for non-developer content editors, would be the first pressure on the
+  strategy (4.2.6) and content-as-code (ADR-003) choices. Both are contained
+  seams, so growing into them is a local change, not a re-architecture.
