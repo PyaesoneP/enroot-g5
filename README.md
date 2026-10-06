@@ -6,11 +6,12 @@ EnROOT trial cohort.
 ## The event
 
 - **Theme:** Friendship
-- **Date:** Friday, 20 November 2026
-- **Venue:** Campus Center, SUTD
-- **Activities:** bracelet making, painting, + one interactive activity
- (pluggable: friendship-band designer / squeeze-ball maker, team decision
- pending)
+- **Date:** Thursday, 19 November 2026
+- **Venue:** Root Cove, SUTD
+- **Activities:** stress ball (squishy) making in pairs at four texture
+  tables (team decision 2026-10-06; trivia night and the band designer cut,
+  see `docs/00-software-requirements.md` section 9). The site's interactive is
+  a pluggable module (ADR-005); v1 = "What stress ball are you?"
 
 Full program context (trial cohort, ROOTech requirements, Phase 2 briefing) is
 in the team's notes; the ROOTech-relevant part is in
@@ -61,7 +62,8 @@ the ADRs above.
 2. Replaced the boilerplate with a clean, responsive shell: header, timeline,
   placeholder hero. Dark-mode aware.
 3. Committed to GitHub, deployed to Vercel for a live URL.
-4. **Theme drawn 6 Oct (Friendship); event = 20 Nov, Campus Center.** Documented
+4. **Theme drawn 6 Oct (Friendship); event = 19 Nov, Root Cove** (moved from
+   20 Nov / Campus Center on 6 Oct). Documented
   the target architecture in `docs/` (4 docs + ADR log).
 5. **Next:** build the real event site (landing, activities, pluggable
   interactive, wall, RSVP), stand up Supabase, deploy. If the event has

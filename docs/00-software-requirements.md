@@ -2,7 +2,8 @@
 
 **Status:** Draft for team review. **Date:** 2026-10-06. **Inputs:** student
 feedback survey (32 responses, closed 2026-10-06), Group 5 team meeting notes
-(2026-10-06), confirmed event logistics (Fri 20 Nov 2026, Campus Center),
+(2026-10-06), confirmed event logistics (Thu 19 Nov 2026, Root Cove;
+date/venue updated 2026-10-06 from 20 Nov / Campus Center),
 ROOTech project brief.
 
 This document lists *what* the system must do and *why*, in numbered
@@ -13,7 +14,7 @@ requirement to the ADR(s) and issue(s) that satisfy it.
 ## 1. Scope
 
 The target system is the **EnROOT Group 5 event website** for the Friendship
-event (20 Nov, Campus Center), plus its **companion Telegram bot** that shares
+event (19 Nov, Root Cove), plus its **companion Telegram bot** that shares
 the same data store. The site serves two audiences:
 
 1. **Pre-event (publicity, from 1 Nov):** students learn the theme, date,
@@ -42,8 +43,8 @@ free tiers of Vercel and Supabase.
 ## 3. Functional requirements
 
 - **F-01 Event overview above the fold.** The landing page must show, without
-  scrolling: the theme (Friendship), the date (20 Nov 2026), the venue
-  (Campus Center), and a one-line summary of what happens at the event.
+  scrolling: the theme (Friendship), the date (19 Nov 2026), the venue
+  (Root Cove), and a one-line summary of what happens at the event.
   *Evidence: 91% of survey respondents said they would check the date/venue
   or what is happening first.*
 - **F-02 Activity page.** A dedicated section describing stress ball making:
@@ -122,7 +123,7 @@ free tiers of Vercel and Supabase.
 |---|---|
 | Event budget | S$200 (S$100 seed + S$100 income), Phase 2 briefing. Site + bot must cost S$0 (free tiers). |
 | Publicity start | 1 Nov 2026 (Milestone 1: publicity-ready site). |
-| Event day | 20 Nov 2026, Campus Center (Milestone 2). |
+| Event day | 19 Nov 2026, Root Cove (Milestone 2). |
 | Marketing minimum | 1 poster + 1 IG post. |
 | Stack | Next.js + Tailwind recommended by the ROOTech brief; GitHub repo with history required; responsive required; backend optional (we use Supabase); Telegram bot optional (adopted). |
 | Process | All work via branch + PR to `main`; nothing merges without review; commits under the maintainer's git identity (AGENTS.md). |
@@ -188,12 +189,15 @@ free tiers of Vercel and Supabase.
 
 **Open:**
 
-- Venue detail: meeting notes mention Root Cove as a table-arrangement
-  option; the confirmed announcement is Campus Center. F-01 renders whatever
-  the final announcement says (content-as-code).
 - Food: the loudest free-text ask (16%) is an event-budget decision (S$200),
   not a site requirement. The site can list snacks on the activity page once
   the team decides (F-10 makes that a one-line edit).
 - ADR-010 (bot runtime) is now decidable: both confirmed bot features fit
   serverless (an on-demand count command plus a scheduled daily post), which
   favors the Vercel path. Closes with the bot definition issue (#18).
+
+**Venue change (2026-10-06):** event moved from Fri 20 Nov / Campus Center to
+**Thu 19 Nov / Root Cove**. All dates and venue text in this document and in
+`content/` must reflect the new values; any poster or IG draft already
+produced with the old values needs a revision pass before publicity goes out
+on 1 Nov.
