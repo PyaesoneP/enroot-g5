@@ -32,10 +32,12 @@ process**.
 
 ## Status
 
-The live page is currently the **build shell** (timeline + placeholder hero).
-The theme was drawn 6 Oct (Friendship); the real event site is the next build:
-landing + activities + the pluggable interactive + friendship wall + RSVP, per
-the ADRs above.
+The live page is currently a **holding page**: theme (Friendship), date
+(Thu 19 Nov 2026), venue (Root Cove) and a timeline. The theme was drawn 6 Oct;
+the real event site is the next build: landing + stress ball activity page +
+"What stress ball are you?" quiz + RSVP for the first milestone, then the
+friendship wall, gallery and Telegram bot as optional extras, per the ADRs
+above.
 
 ## Requirements (from the ROOTech brief)
 
@@ -43,7 +45,7 @@ the ADRs above.
 - **Responsive:** mobile-first layout, verified at phone / tablet / desktop widths
 - **GitHub repo:** this repo
 - **Backend:** not required for the shell; the target design uses Supabase
- (see ADR-004) for the wall / RSVP / saved outputs / scores
+ (see ADR-004) for the wall / RSVP / saved outputs
 - **AI usage:** allowed, but the brief asks for customization and "life of its
  own". No generic machine-generated output. The content is hand-written for
  this specific team and event.
@@ -65,9 +67,9 @@ the ADRs above.
 4. **Theme drawn 6 Oct (Friendship); event = 19 Nov, Root Cove** (moved from
    20 Nov / Campus Center on 6 Oct). Documented
   the target architecture in `docs/` (4 docs + ADR log).
-5. **Next:** build the real event site (landing, activities, pluggable
-  interactive, wall, RSVP), stand up Supabase, deploy. If the event has
-  trivia/minigame, run the Python Telegram bot (ADR-010 fixes its runtime).
+5. **Next:** build the real event site (landing, activity page, quiz, RSVP),
+  stand up Supabase, deploy. Stretch: wall, gallery, and the Python Telegram
+  bot (live count + daily message; ADR-010 fixes its runtime).
 
 ## Run locally
 

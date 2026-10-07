@@ -26,13 +26,17 @@ export default function Home() {
 
       {/* Main */}
       <main className="mx-auto flex max-w-3xl flex-col px-6 py-10 sm:py-16">
-        <h1 className="text-2xl font-semibold leading-tight sm:text-3xl">
-          We haven&apos;t drawn the theme yet.
+        <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+          Thursday 19 November 2026 - Root Cove, SUTD
+        </p>
+        <h1 className="mt-2 text-3xl font-semibold leading-tight sm:text-4xl">
+          Friendship
         </h1>
         <p className="mt-3 max-w-prose text-base leading-7 text-zinc-600 dark:text-zinc-400">
-          This is the build shell for EnROOT Group 5&apos;s event site. The theme
-          and activity are drawn 3-4 Oct. We build the real thing around it.
-          Until then this page stays honest: a placeholder, not a product.
+          Pair up and make a stress ball together at one of four texture
+          tables. EnROOT Group 5 is hosting it for the 15th ROOT. The activity
+          page and sign-up are being built now and open before publicity
+          starts on 1 Nov.
         </p>
 
         {/* Timeline */}
@@ -43,11 +47,11 @@ export default function Home() {
           <ol className="mt-4 space-y-4">
             {[
               { label: "1 Oct", detail: "Events briefing", done: true },
-              { label: "3-4 Oct", detail: "Theme + activity drawn", done: false },
+              { label: "6 Oct", detail: "Theme drawn: Friendship. Activity: stress ball making", done: true },
               { label: "From 14 Oct", detail: "Draw lots, then pick event week", done: false },
               { label: "1 Nov", detail: "Publicity material (poster + IG)", done: false },
-              { label: "5-27 Nov", detail: "Event day", done: false },
-              { label: "14 Dec", detail: "Final members revealed", done: false },
+              { label: "19 Nov", detail: "Event day: Friendship at Root Cove", done: false },
+              { label: "Dec", detail: "Final members revealed", done: false },
             ].map((step, i) => (
               <li key={i} className="flex items-start gap-3">
                 <span
@@ -71,7 +75,7 @@ export default function Home() {
         {/* Footer note */}
         <footer className="mt-16 border-t border-zinc-200 pt-6 text-xs text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
           Built with Next.js + Tailwind. Deployed on Vercel. The full event site
-          ships after the theme is confirmed.
+          is in progress.
         </footer>
       </main>
     </div>

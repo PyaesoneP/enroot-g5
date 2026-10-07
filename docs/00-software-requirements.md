@@ -1,7 +1,7 @@
 # 0. Software Requirements (SRS)
 
 **Status:** Draft for team review. **Date:** 2026-10-06. **Inputs:** student
-feedback survey (32 responses, closed 2026-10-06), Group 5 team meeting notes
+feedback survey (32 responses at close on 2026-10-06; 33 by the 2026-10-07 review, see Section 7), Group 5 team meeting notes
 (2026-10-06), confirmed event logistics (Thu 19 Nov 2026, Root Cove;
 date/venue updated 2026-10-06 from 20 Nov / Campus Center),
 ROOTech project brief.
@@ -45,7 +45,7 @@ free tiers of Vercel and Supabase.
 - **F-01 Event overview above the fold.** The landing page must show, without
   scrolling: the theme (Friendship), the date (19 Nov 2026), the venue
   (Root Cove), and a one-line summary of what happens at the event.
-  *Evidence: 91% of survey respondents said they would check the date/venue
+  *Evidence: 91% of survey respondents (N=32 at close) said they would check the date/venue
   or what is happening first.*
 - **F-02 Activity page.** A dedicated section describing stress ball making:
   how it works (pairs, four texture tables, draw lots to pair with someone
@@ -55,11 +55,11 @@ free tiers of Vercel and Supabase.
   visitor's squishy preference) so the team can plan tables and expect
   headcount. Walk-ins remain possible; sign-up is a planning tool, not a gate.
   A **live sign-up count** is displayed on the landing page.
-  *Evidence: 56% of bot-survey respondents wanted a live RSVP count; meeting
+  *Evidence: 56% of bot-survey respondents (18 of 32) wanted a live RSVP count; meeting
   notes require sign-ups to plan four tables of ~5.*
 - **F-04 Friendship wall.** Visitors can post a short message (280 chars max),
   read the list of all messages, and delete their own post. No login.
-  *Evidence: 75% of respondents said they would post or maybe post.*
+  *Evidence: 76% of respondents (25 of 33) said they would post or maybe post.*
 - **F-05 Interactive activity module (pluggable).** The site carries exactly
   one interactive slot, loaded from a single config pointer (ADR-005).
   **Module v1: "What stress ball are you?"** a short preference flow that
@@ -80,8 +80,9 @@ free tiers of Vercel and Supabase.
 - **F-09 Telegram bot.** A Python bot over the shared store with two
   confirmed features: (a) a command that returns the **live sign-up count**,
   (b) a **daily friendship message** (scheduled post) on publicity and event
-  days. *Evidence: 56% live RSVP count, 44% daily message. Trivia (41%) is
-  recorded as a signal but not adopted (Section 9).*
+  days. *Evidence (32 answered): 56% live RSVP count (18), 47% daily message
+  (15). Trivia/quiz (44%, 14) is recorded as a signal but not adopted
+  (Section 9).*
 - **F-10 Content as code.** All human-editable copy (event copy, activity
   blurbs, schedule, stop-word list) lives in `content/` as plain files. A
   content change is a git commit, reviewed and versioned.
@@ -138,15 +139,20 @@ free tiers of Vercel and Supabase.
 | Telegram Bot API | Bot messaging surface | Python bot, server-side credentials only. |
 | `content/` directory | Content interface | Plain files, git-versioned, read at build and at runtime. |
 
-## 7. Requirements evidence (survey, N=32)
+## 7. Requirements evidence (survey)
 
-| Question | Result | Drives |
-|---|---|---|
-| Check first on the site | 47% what is happening, 44% date/venue, 6% food/other | F-01 (both above the fold) |
-| Most fun interactive | 59% stress ball, 34% friendship band, 6% other | F-05 (module v1 = squishy; band = next candidate) |
-| Would you post on a public wall | 53% yes, 22% maybe, 25% no | F-04 (kept: 75% yes/maybe) |
-| Useful bot features (multi) | 56% live RSVP count, 44% daily message, 41% trivia, 19% nothing | F-09 (RSVP count + daily message) |
-| Free text | 16% food, 6% music/song requests, 16% positive/nothing | Food handled by event logistics (budget), not the site; music is out of scope |
+The survey closed on 2026-10-06 with 32 responses; a 33rd arrived before the
+2026-10-07 review. Each row states the N it is based on. Rows marked "at close"
+were not re-counted with the 33rd response. Percentages are rounded from the
+counts shown.
+
+| Question | N | Result | Drives |
+|---|---|---|---|
+| Check first on the site | 32 (at close) | 47% what is happening, 44% date/venue, 6% food/other | F-01 (both above the fold) |
+| Most fun interactive | 33 | 58% stress ball (19 of 33); friendship band second (34% at close, N=32) | F-05 (module v1 = squishy; band = next candidate) |
+| Would you post on a public wall | 33 | 55% yes (18), 21% maybe (7), 24% no / "too public" (8) | F-04 (kept: 76% yes/maybe) |
+| Useful bot features (multi) | 32 answered | 56% live RSVP count (18), 47% daily message (15), 44% trivia/quiz (14), 19% nothing (6) | F-09 (RSVP count + daily message) |
+| Free text | 32 (at close) | 16% food, 6% music/song requests, 16% positive/nothing | Food handled by event logistics (budget), not the site; music is out of scope |
 
 ## 8. Traceability
 
@@ -178,11 +184,11 @@ free tiers of Vercel and Supabase.
 **Cut (recorded for the process record):**
 
 - **Trivia night / leaderboard.** Proposed in the 2026-10-06 meeting notes and
-  supported by 41% of bot-survey respondents, but dropped by team decision the
+  supported by 44% (14 of 32) of bot-survey respondents, but dropped by team decision the
   same day: the event is stress ball making only. Consequences: issue #17
   (leaderboard) and the `scores` table are dropped; the bot's trivia command
   is not built.
-- **Friendship band designer.** Survey's second choice (34%). Superseded by
+- **Friendship band designer.** Survey's second choice (34% at close). Superseded by
   the finalized activity; retained as the next candidate behind the
   pluggable-module interface (ADR-005), which is exactly what that ADR was
   written for.
