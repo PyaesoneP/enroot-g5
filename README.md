@@ -3,6 +3,8 @@
 Event site for **EnROOT Group 5** (15th ROOT, SUTD), part of the 15th ROOT
 EnROOT trial cohort.
 
+**Live site:** https://enroot-g5.vercel.app/
+
 ## The event
 
 - **Theme:** Friendship
@@ -82,4 +84,5 @@ Open http://localhost:3000.
 
 ## Deploy
 
-Push to GitHub, connect the repo to Vercel, and it deploys automatically.
+Production: https://enroot-g5.vercel.app/ (Vercel). Pushes to `main` deploy
+to production automatically; other branches get preview URLs.
