@@ -33,10 +33,10 @@ export default function Home() {
           Friendship
         </h1>
         <p className="mt-3 max-w-prose text-base leading-7 text-zinc-600 dark:text-zinc-400">
-          Pair up and make a stress ball together at one of four texture
-          tables. EnROOT Group 5 is hosting it for the 15th ROOT. The activity
-          page and sign-up are being built now and open before publicity
-          starts on 1 Nov.
+          Get paired by squishy preference and make a stress ball together at
+          one of four texture tables. EnROOT Group 5 is hosting it for the 15th
+          ROOT. The activity page and sign-up are being built now and open
+          before publicity starts on 1 Nov.
         </p>
 
         {/* Timeline */}

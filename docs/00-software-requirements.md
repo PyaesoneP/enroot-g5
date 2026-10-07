@@ -48,9 +48,10 @@ free tiers of Vercel and Supabase.
   *Evidence: 91% of survey respondents (N=32 at close) said they would check the date/venue
   or what is happening first.*
 - **F-02 Activity page.** A dedicated section describing stress ball making:
-  how it works (pairs, four texture tables, draw lots to pair with someone
-  whose squishy preference matches yours, table prizes), the materials list,
-  and the day's schedule.
+  how it works (pairs, four texture tables, organizers pair visitors by
+  matching squishy preference, table prizes), the materials list,
+  and the day's schedule. Pairing rule: match by preference (team decision
+  2026-10-07, "for now"; revisit if it does not work on the day).
 - **F-03 Sign-up (RSVP).** A sign-up form (name optional, group size, and the
   visitor's squishy preference) so the team can plan tables and expect
   headcount. Walk-ins remain possible; sign-up is a planning tool, not a gate.
