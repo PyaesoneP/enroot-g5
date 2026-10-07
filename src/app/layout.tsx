@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "EnROOT Group 5 — 15th ROOT, SUTD",
+  title: "Friendship - EnROOT Group 5, 15th ROOT, SUTD",
   description:
-    "Event site for EnROOT Group 5 (15th ROOT, SUTD). Theme drawn 3–4 Oct; the full site ships after the theme is confirmed.",
+    "Friendship: make a stress ball with a partner. EnROOT Group 5 (15th ROOT, SUTD), Thursday 19 November 2026 at Root Cove, SUTD.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
