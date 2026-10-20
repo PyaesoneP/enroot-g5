@@ -88,7 +88,7 @@ export function CharmBuilder() {
       {/* Bracelet + picks */}
       <section className="flex flex-col gap-4 rounded-3xl border border-line bg-surface p-5 lg:sticky lg:top-20">
         <div className="relative">
-          <div aria-hidden className="absolute inset-[10%] rounded-full bg-blush blur-2xl" />
+          <div aria-hidden className="absolute inset-x-[5%] inset-y-[20%] rounded-full bg-blush blur-2xl" />
           <Bracelet
             picks={picks}
             onSlotClick={tapSlot}

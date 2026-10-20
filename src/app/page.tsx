@@ -49,7 +49,7 @@ export default function Home() {
         </div>
 
         <div className="relative mx-auto w-full max-w-sm">
-          <div aria-hidden className="absolute inset-[8%] rounded-full bg-blush blur-2xl" />
+          <div aria-hidden className="absolute inset-x-[2%] inset-y-[18%] rounded-full bg-blush blur-2xl" />
           <Bracelet picks={placeAtDefaults(charms.heroCharms)} spin label="A sample bracelet" />
         </div>
       </section>

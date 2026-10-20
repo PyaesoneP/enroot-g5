@@ -43,8 +43,13 @@
   --font-mono: var(--font-geist-mono);
   --font-display: var(--font-fraunces);
 
-  --animate-spin-slow: spin 90s linear infinite;
+  --animate-sway: sway 9s ease-in-out infinite alternate;
   --animate-marquee: marquee 60s linear infinite;
+
+  @keyframes sway {
+    from { transform: rotateY(35deg); }
+    to { transform: rotateY(-35deg); }
+  }
 
   @keyframes marquee {
     from { transform: translateX(0); }
