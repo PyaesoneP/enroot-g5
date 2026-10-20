@@ -1,19 +1,40 @@
+import Link from "next/link";
 import { event } from "@/lib/content";
 
 export default function Home() {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col px-6 py-10 sm:py-16">
-      <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-        {event.dateLabel}, {event.timeLabel} - {event.venue}
-      </p>
-      <h1 className="mt-2 text-3xl font-semibold leading-tight sm:text-4xl">
+      <h1 className="text-3xl font-semibold leading-tight sm:text-4xl">
         {event.name}
       </h1>
-      <p className="mt-1 text-sm font-medium text-zinc-500 dark:text-zinc-400">
-        Theme: {event.theme}
-      </p>
       <p className="mt-3 max-w-prose text-base leading-7 text-zinc-600 dark:text-zinc-400">
-        {event.summary} {event.status}
+        {event.summary}
+      </p>
+
+      {/* Key facts: above the fold on a 360 px phone (SRS F-01) */}
+      <dl className="mt-6 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+        {[
+          { term: "When", value: `${event.dateLabel}, ${event.timeLabel}` },
+          { term: "Where", value: event.venue },
+          { term: "Theme", value: event.theme },
+        ].map((fact) => (
+          <div key={fact.term} className="contents">
+            <dt className="font-medium text-zinc-500 dark:text-zinc-400">{fact.term}</dt>
+            <dd>{fact.value}</dd>
+          </div>
+        ))}
+      </dl>
+
+      <div className="mt-6">
+        <Link
+          href="/activity"
+          className="inline-flex items-center rounded-md bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+        >
+          How it works
+        </Link>
+      </div>
+      <p className="mt-4 max-w-prose text-sm text-zinc-500 dark:text-zinc-400">
+        {event.status}
       </p>
 
       {/* Timeline */}
