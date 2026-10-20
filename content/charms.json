@@ -5,6 +5,13 @@
   "linkCount": 18,
   "pickCount": 4,
   "heroCharms": ["c27", "c30", "c55", "c85"],
+  "vibes": [
+    { "id": "sweet", "label": "Sweet", "categories": ["love", "flowers"], "blurb": "Hearts and flowers. You make the people around you feel looked after." },
+    { "id": "playful", "label": "Playful", "categories": ["animals", "fun"], "blurb": "Cats, pigs and 8 balls. You are usually the one who starts the joke." },
+    { "id": "dreamy", "label": "Dreamy", "categories": ["sky"], "blurb": "Moons and stars. Late-night talks are your thing." },
+    { "id": "bold", "label": "Bold", "categories": ["patterns", "words"], "blurb": "Swirls, checks and big words. You say what you mean." }
+  ],
+  "vibeTable": "On the night, head to the {vibe} table and pair up with someone there.",
   "categories": [
     { "id": "love", "label": "Love" },
     { "id": "flowers", "label": "Flowers" },

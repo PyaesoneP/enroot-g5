@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { charms } from "@/lib/content";
 import { Bracelet } from "./bracelet";
-import { move, nextFreeSlot, parsePicks, place, serializePicks, type Picks } from "./picks";
+import { move, nextFreeSlot, parsePicks, place, serializePicks, vibeOf, type Picks } from "./picks";
 
 const PARAM = "charms";
 const labels = new Map(charms.charms.map((c) => [c.id, c.label]));
@@ -21,6 +21,7 @@ export function CharmBuilder() {
   const [copied, setCopied] = useState(false);
 
   const full = picks.length === charms.pickCount;
+  const vibe = vibeOf(picks);
   const charmOn = (slot: number) => picks.find((p) => p.slot === slot)?.id;
   const shown = category ? charms.charms.filter((c) => c.category === category) : charms.charms;
 
@@ -123,6 +124,14 @@ export function CharmBuilder() {
         <p className="text-center text-sm text-muted" aria-live="polite">
           {status()}
         </p>
+        {vibe && (
+          <div className="rounded-2xl bg-blush p-4 text-center" aria-live="polite">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose">Your vibe</p>
+            <p className="mt-1 font-display text-3xl font-semibold [font-variation-settings:'SOFT'_100]">{vibe.label}</p>
+            <p className="mt-1 text-sm">{vibe.blurb}</p>
+            <p className="mt-2 text-xs text-muted">{charms.vibeTable.replace("{vibe}", vibe.label)}</p>
+          </div>
+        )}
         <div className="flex flex-wrap justify-center gap-3">
           <button
             type="button"

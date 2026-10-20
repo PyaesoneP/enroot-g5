@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { activity, event } from "@/lib/content";
+import Image from "next/image";
+import { activity, charms, event } from "@/lib/content";
 
 export const metadata: Metadata = {
   title: `How it works - ${event.name}`,
@@ -34,6 +35,29 @@ export default function ActivityPage() {
           ))}
         </ol>
         <p className="mt-4 text-sm text-muted">{activity.pairingRule}</p>
+      </section>
+
+      {/* Vibes: the pairing groups */}
+      <section className="mt-12">
+        <h2 className={sectionHeading}>Four vibes, four tables</h2>
+        <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {charms.vibes.map((vibe) => (
+            <li key={vibe.id} className="rounded-2xl border border-line bg-surface p-5">
+              <div className="flex gap-1.5" aria-hidden>
+                {charms.charms
+                  .filter((c) => vibe.categories.includes(c.category))
+                  .slice(0, 3)
+                  .map((c) => (
+                    <span key={c.id} className="relative block h-9 w-11">
+                      <Image src={`/charms/${c.id}.webp`} alt="" fill sizes="44px" unoptimized className="object-contain" />
+                    </span>
+                  ))}
+              </div>
+              <p className="mt-3 font-display text-xl font-semibold [font-variation-settings:'SOFT'_100]">{vibe.label}</p>
+              <p className="mt-1 text-sm leading-6 text-muted">{vibe.blurb}</p>
+            </li>
+          ))}
+        </ul>
       </section>
 
       {/* Materials + schedule */}

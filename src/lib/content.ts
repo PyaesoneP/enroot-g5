@@ -35,6 +35,8 @@ export type ActivityContent = {
 
 export type CharmCategory = { id: string; label: string };
 export type Charm = { id: string; label: string; category: string };
+// A pairing group: a few style families. Each family belongs to one vibe.
+export type Vibe = { id: string; label: string; categories: string[]; blurb: string };
 
 // The charm catalogue for the bracelet builder. Images live at
 // public/charms/<id>.webp; removing a charm here removes it from the site.
@@ -43,6 +45,9 @@ export type CharmsContent = {
   note: string;
   // Under the copy button: what the bracelet link does.
   shareHint: string;
+  vibes: Vibe[];
+  // Shown with the visitor's vibe; {vibe} is replaced with its label.
+  vibeTable: string;
   linkCount: number;
   pickCount: number;
   // Sample bracelet on the landing page.
@@ -58,3 +63,12 @@ export const event: EventContent = eventJson;
 export const activity: ActivityContent = charmAndChatterJson;
 export const activityConfig: ActivityConfig = activityJson;
 export const charms: CharmsContent = charmsJson;
+
+// Every style family must belong to exactly one vibe, or pairing breaks;
+// checked at build time so a content edit cannot ship a gap.
+for (const cat of charms.categories) {
+  const owners = charms.vibes.filter((v) => v.categories.includes(cat.id));
+  if (owners.length !== 1) {
+    throw new Error(`content/charms.json: category "${cat.id}" is in ${owners.length} vibes, expected 1`);
+  }
+}
