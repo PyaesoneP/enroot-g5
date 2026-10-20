@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Friendship - EnROOT Group 5, 15th ROOT, SUTD",
+  title: "Charm & Chatter - EnROOT Group 5, 15th ROOT, SUTD",
   description:
-    "Friendship: make a stress ball with a partner. EnROOT Group 5 (15th ROOT, SUTD), Thursday 19 November 2026 at Root Cove, SUTD.",
+    "Charm & Chatter: make Italian charm friendship bracelets with a partner. EnROOT Group 5 (15th ROOT, SUTD), Thursday 19 November 2026 at Root Cove, SUTD.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

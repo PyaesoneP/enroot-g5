@@ -27,14 +27,18 @@ export default function Home() {
       {/* Main */}
       <main className="mx-auto flex max-w-3xl flex-col px-6 py-10 sm:py-16">
         <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-          Thursday 19 November 2026 - Root Cove, SUTD
+          Thursday 19 November 2026, 7pm to 9pm - Root Cove, SUTD
         </p>
         <h1 className="mt-2 text-3xl font-semibold leading-tight sm:text-4xl">
-          Friendship
+          Charm &amp; Chatter
         </h1>
+        <p className="mt-1 text-sm font-medium text-zinc-500 dark:text-zinc-400">
+          Theme: Friendship
+        </p>
         <p className="mt-3 max-w-prose text-base leading-7 text-zinc-600 dark:text-zinc-400">
-          Get paired by squishy preference and make a stress ball together at
-          one of four texture tables. EnROOT Group 5 is hosting it for the 15th
+          Pair up and make Italian charm friendship bracelets: each of you
+          builds your own and picks four charms that say something about you.
+          EnROOT Group 5 is hosting it for the 15th
           ROOT. The activity page and sign-up are being built now and open
           before publicity starts on 1 Nov.
         </p>
@@ -47,7 +51,8 @@ export default function Home() {
           <ol className="mt-4 space-y-4">
             {[
               { label: "1 Oct", detail: "Events briefing", done: true },
-              { label: "6 Oct", detail: "Theme drawn: Friendship. Activity: stress ball making", done: true },
+              { label: "6 Oct", detail: "Theme drawn: Friendship", done: true },
+              { label: "20 Oct", detail: "Event proposal drafted: Charm & Chatter", done: true },
               { label: "From 14 Oct", detail: "Draw lots, then pick event week", done: false },
               { label: "1 Nov", detail: "Publicity material (poster + IG)", done: false },
               { label: "19 Nov", detail: "Event day: Friendship at Root Cove", done: false },

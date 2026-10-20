@@ -208,6 +208,12 @@ system.
 - **A full plugin system with a manifest/registry.** Over-engineered for exactly
  one slot. Rejected in favor of a single config pointer.
 
+**Update (2026-10-20).** The swap happened before any module was built: the
+event changed from stress ball making to Charm & Chatter (Italian charm
+friendship bracelets), and module v1 changed from "What stress ball are you?"
+to "What charm are you?". The interface above did not change; the cost was
+copy, SRS and issue edits only (SRS section 9).
+
 ---
 
 ## ADR-006 - One shared data store for the site and the bot
