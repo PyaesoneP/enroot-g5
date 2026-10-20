@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Bracelet } from "@/activities/charm-builder/bracelet";
+import { placeAtDefaults } from "@/activities/charm-builder/picks";
 import { CharmStrip } from "@/components/charm-strip";
 import { charms, event } from "@/lib/content";
 
@@ -49,7 +50,7 @@ export default function Home() {
 
         <div className="relative mx-auto w-full max-w-sm">
           <div aria-hidden className="absolute inset-[8%] rounded-full bg-blush blur-2xl" />
-          <Bracelet picks={charms.heroCharms} spin label="A sample bracelet" />
+          <Bracelet picks={placeAtDefaults(charms.heroCharms)} spin label="A sample bracelet" />
         </div>
       </section>
 
