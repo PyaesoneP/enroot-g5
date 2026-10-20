@@ -3,6 +3,7 @@
   "note": "This is a preview: on the night the charms are on a shared table, first come, first served.",
   "linkCount": 18,
   "pickCount": 4,
+  "heroCharms": ["c27", "c30", "c55", "c85"],
   "categories": [
     { "id": "love", "label": "Love" },
     { "id": "flowers", "label": "Flowers" },

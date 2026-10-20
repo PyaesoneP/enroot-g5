@@ -43,6 +43,8 @@ export type CharmsContent = {
   note: string;
   linkCount: number;
   pickCount: number;
+  // Sample bracelet on the landing page.
+  heroCharms: string[];
   categories: CharmCategory[];
   charms: Charm[];
 };

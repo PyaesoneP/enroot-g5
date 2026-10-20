@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { activity, event } from "@/lib/content";
 
 export const metadata: Metadata = {
@@ -6,62 +7,72 @@ export const metadata: Metadata = {
   description: `${activity.tagline} ${event.dateLabel}, ${event.timeLabel}, ${event.venue}.`,
 };
 
-const sectionHeading =
-  "text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400";
+const sectionHeading = "font-display text-2xl font-semibold [font-variation-settings:'SOFT'_100]";
 
 export default function ActivityPage() {
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col px-6 py-10 sm:py-16">
-      <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-        {event.dateLabel}, {event.timeLabel} - {event.venue}
-      </p>
-      <h1 className="mt-2 text-3xl font-semibold leading-tight sm:text-4xl">
+    <main className="mx-auto flex w-full max-w-5xl flex-col px-6 pt-10 sm:pt-16">
+      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-rose">How it works</p>
+      <h1 className="mt-3 font-display text-4xl font-semibold leading-tight tracking-tight [font-variation-settings:'SOFT'_100] sm:text-5xl">
         {activity.name}
       </h1>
-      <p className="mt-3 max-w-prose text-base leading-7 text-zinc-600 dark:text-zinc-400">
-        {activity.tagline}
+      <p className="mt-3 max-w-prose text-lg leading-8 text-muted">{activity.tagline}</p>
+      <p className="mt-2 text-sm font-medium">
+        {event.dateLabel}, {event.timeLabel} &middot; {event.venue}
       </p>
 
       {/* How it works */}
-      <section className="mt-10">
-        <h2 className={sectionHeading}>How it works</h2>
-        <ol className="mt-4 space-y-4">
+      <section className="mt-12">
+        <ol className="grid gap-4 sm:grid-cols-2">
           {activity.howItWorks.map((step, i) => (
-            <li key={i} className="flex items-start gap-3">
-              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-zinc-900 text-[10px] font-semibold text-white dark:bg-zinc-100 dark:text-zinc-900">
+            <li key={i} className="rounded-2xl border border-line bg-surface p-5">
+              <span className="font-display text-4xl font-semibold text-rose [font-variation-settings:'SOFT'_100]">
                 {i + 1}
               </span>
-              <p className="text-sm leading-6">{step}</p>
+              <p className="mt-2 leading-7">{step}</p>
             </li>
           ))}
         </ol>
-        <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
-          {activity.pairingRule}
+        <p className="mt-4 text-sm text-muted">{activity.pairingRule}</p>
+      </section>
+
+      {/* Materials + schedule */}
+      <div className="mt-12 grid gap-10 md:grid-cols-2">
+        <section>
+          <h2 className={sectionHeading}>What you get</h2>
+          <ul className="mt-4 flex flex-wrap gap-2">
+            {activity.materials.map((item, i) => (
+              <li key={i} className="rounded-full bg-blush px-4 py-2 text-sm">
+                {item}
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section>
+          <h2 className={sectionHeading}>Schedule</h2>
+          <dl className="mt-4 space-y-3">
+            {event.schedule.map((item, i) => (
+              <div key={i} className="rounded-2xl border border-line bg-surface p-4">
+                <dt className="text-sm font-semibold text-rose">{item.time}</dt>
+                <dd className="mt-1 text-sm">{item.detail}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      </div>
+
+      <div className="mt-12 rounded-3xl bg-blush p-6 sm:flex sm:items-center sm:justify-between sm:p-8">
+        <p className="font-display text-xl font-semibold [font-variation-settings:'SOFT'_100]">
+          Not sure which charms are you?
         </p>
-      </section>
-
-      {/* Materials */}
-      <section className="mt-10">
-        <h2 className={sectionHeading}>What you get</h2>
-        <ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-6 marker:text-zinc-400">
-          {activity.materials.map((item, i) => (
-            <li key={i}>{item}</li>
-          ))}
-        </ul>
-      </section>
-
-      {/* Schedule */}
-      <section className="mt-10">
-        <h2 className={sectionHeading}>Schedule</h2>
-        <dl className="mt-4 space-y-3">
-          {event.schedule.map((item, i) => (
-            <div key={i} className="sm:flex sm:gap-6">
-              <dt className="text-sm font-medium sm:w-40 sm:shrink-0">{item.time}</dt>
-              <dd className="text-sm text-zinc-500 dark:text-zinc-400">{item.detail}</dd>
-            </div>
-          ))}
-        </dl>
-      </section>
+        <Link
+          href="/make"
+          className="mt-4 inline-flex rounded-full bg-rose px-5 py-3 text-sm font-semibold text-rose-ink hover:opacity-90 sm:mt-0"
+        >
+          Try them on first
+        </Link>
+      </div>
     </main>
   );
 }

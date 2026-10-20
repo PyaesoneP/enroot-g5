@@ -12,7 +12,16 @@ const RADIUS = 0.36;
 // Renders the bracelet as a ring of linkCount links seen from above. The
 // charm slots sit together at the top, centred, in pick order; plain links
 // fill the rest. Empty charm slots are outlined so you can see what is left.
-export function Bracelet({ picks }: { picks: Picks }) {
+// spin: turn slowly (decorative use, e.g. the landing hero).
+export function Bracelet({
+  picks,
+  spin = false,
+  label = "Your bracelet",
+}: {
+  picks: Picks;
+  spin?: boolean;
+  label?: string;
+}) {
   const n = charms.linkCount;
   const slots = charms.pickCount;
   const step = 360 / n;
@@ -22,11 +31,15 @@ export function Bracelet({ picks }: { picks: Picks }) {
 
   const described =
     picks.length > 0
-      ? `Your bracelet: ${picks.map((id) => labels.get(id)).join(", ")}`
-      : "Your bracelet: plain links, no charms yet";
+      ? `${label}: ${picks.map((id) => labels.get(id)).join(", ")}`
+      : `${label}: plain links, no charms yet`;
 
   return (
-    <div role="img" aria-label={described} className="relative mx-auto aspect-square w-full max-w-80">
+    <div
+      role="img"
+      aria-label={described}
+      className={`relative mx-auto aspect-square w-full max-w-80 ${spin ? "motion-safe-only animate-spin-slow" : ""}`}
+    >
       {Array.from({ length: n }, (_, i) => {
         // Slot i's angle: charm slots 0..slots-1 straddle the top (-90deg).
         const angle = -90 + (i - (slots - 1) / 2) * step;
@@ -38,7 +51,7 @@ export function Bracelet({ picks }: { picks: Picks }) {
         return (
           <div
             key={i}
-            className={`absolute ${emptySlot ? "rounded-sm outline-2 outline-offset-1 outline-dashed outline-zinc-400 dark:outline-zinc-500" : ""}`}
+            className={`absolute ${emptySlot ? "rounded-sm outline-2 outline-offset-1 outline-dashed outline-rose/60" : ""}`}
             style={{
               left: `${x}%`,
               top: `${y}%`,
@@ -53,7 +66,7 @@ export function Bracelet({ picks }: { picks: Picks }) {
               fill
               sizes="48px"
               unoptimized
-              className="object-contain"
+              className="object-contain drop-shadow-[0_2px_2px_rgba(60,30,40,0.25)]"
             />
           </div>
         );
