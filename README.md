@@ -14,7 +14,7 @@ EnROOT trial cohort.
   bracelets, made in pairs: each person builds an 18-link bracelet and picks
   4 charms (EPF draft 2026-10-20; replaces stress ball making, see
   `docs/00-software-requirements.md` section 9). The site's interactive is
-  a pluggable module (ADR-005); v1 = "What charm are you?"
+  a pluggable module (ADR-005); v1 = "Make your bracelet" (pick 4 charms, see them on a rendered bracelet)
 
 Full program context (trial cohort, ROOTech requirements, Phase 2 briefing) is
 in the team's notes; the ROOTech-relevant part is in
@@ -38,7 +38,7 @@ process**.
 The live page is currently a **holding page**: theme (Friendship), date
 (Thu 19 Nov 2026), venue (Root Cove) and a timeline. The theme was drawn 6 Oct;
 the real event site is the next build: landing + Charm & Chatter activity page +
-"What charm are you?" quiz + RSVP for the first milestone, then the
+"Make your bracelet" builder + RSVP for the first milestone, then the
 friendship wall, gallery and Telegram bot as optional extras, per the ADRs
 above.
 

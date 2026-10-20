@@ -14,15 +14,18 @@ export function SiteHeader() {
             <p className="text-xs text-zinc-500 dark:text-zinc-400">{event.cohort}</p>
           </div>
         </Link>
-        <nav className="flex items-center gap-4 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+        <nav className="flex items-center gap-3 whitespace-nowrap text-xs sm:gap-4 font-medium text-zinc-500 dark:text-zinc-400">
           <Link href="/activity" className="underline-offset-2 hover:underline">
             How it works
+          </Link>
+          <Link href="/make" className="underline-offset-2 hover:underline">
+            Make yours
           </Link>
           <a
             href="https://github.com/PyaesoneP/enroot-g5"
             target="_blank"
             rel="noopener noreferrer"
-            className="underline-offset-2 hover:underline"
+            className="hidden underline-offset-2 hover:underline sm:inline"
           >
             GitHub
           </a>

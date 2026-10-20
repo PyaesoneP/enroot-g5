@@ -67,12 +67,14 @@ free tiers of Vercel and Supabase.
   *Evidence: 76% of respondents (25 of 33) said they would post or maybe post.*
 - **F-05 Interactive activity module (pluggable).** The site carries exactly
   one interactive slot, loaded from a single config pointer (ADR-005).
-  **Module v1: "What charm are you?"** a short preference flow that ends
-  on one of the event's actual charm designs (cats, flowers, hearts,
-  celestial, patterns, words), saved as an output. This doubles as the
-  preference collection for on-site pairing (F-03) and the "life of its
-  own" the brief asks for. (Replaces "What stress ball are you?" with the
-  2026-10-20 activity change; no module code had been written yet.)
+  **Module v1: "Make your bracelet"** (`/make`): the visitor picks 4 of the
+  event's actual charm designs and sees them on a rendered 18-link
+  bracelet. The picks are kept in the page URL (shareable, no store
+  needed) and later saved as an output. This doubles as the preference
+  collection for on-site pairing (F-03) and the "life of its own" the
+  brief asks for. (Replaces "What stress ball are you?" with the
+  2026-10-20 activity change, and the "What charm are you?" quiz idea by
+  team request the same day; no module code had been written yet.)
 - **F-06 Saved outputs gallery.** A public page listing saved activity outputs
   (opt-in per visitor). Outputs carry their activity id so a future activity
   swap does not corrupt past outputs.
