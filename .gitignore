@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# event paperwork and source photos (personal data / third-party images; keep out of the public repo)
+/Event Proposal Form*.pdf
+*:Zone.Identifier
+/Charm pieces/

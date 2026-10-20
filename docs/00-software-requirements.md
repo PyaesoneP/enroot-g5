@@ -1,10 +1,11 @@
 # 0. Software Requirements (SRS)
 
-**Status:** Draft for team review. **Date:** 2026-10-06. **Inputs:** student
+**Status:** Draft for team review. **Date:** 2026-10-06 (activity updated
+2026-10-20). **Inputs:** student
 feedback survey (32 responses at close on 2026-10-06; 33 by the 2026-10-07 review, see Section 7), Group 5 team meeting notes
 (2026-10-06), confirmed event logistics (Thu 19 Nov 2026, Root Cove;
 date/venue updated 2026-10-06 from 20 Nov / Campus Center),
-ROOTech project brief.
+the Event Proposal Form (EPF) draft of 2026-10-20, ROOTech project brief.
 
 This document lists *what* the system must do and *why*, in numbered
 requirements. How the system is built is covered by docs 01 to 04; this doc is
@@ -23,9 +24,11 @@ the same data store. The site serves two audiences:
    saved activity outputs, and the bot mirrors the live sign-up count and
    sends a daily friendship message.
 
-The single confirmed on-site activity is **stress ball (squishy) making**,
-done in pairs around four texture tables. The team considered and removed
-trivia night and the friendship band designer (see Section 9, Cut items).
+The single confirmed on-site activity is **Charm & Chatter: Italian charm
+friendship bracelet making**, done in pairs, 7:00pm to 9:00pm (EPF draft,
+2026-10-20). Each participant gets an 18-link stainless steel base bracelet
+and swaps 4 plain links for photo charms. It replaces stress ball making
+(decided 2026-10-06); trivia night was cut earlier (see Section 9).
 
 Out of scope: backend business logic beyond the event, payment, accounts,
 content editing outside the repo, and any feature that needs more than the
@@ -38,7 +41,7 @@ free tiers of Vercel and Supabase.
 | Visitor | Anonymous student on a phone. Views the site, signs up, posts to the wall, plays the interactive. No account. |
 | Bot user | Telegram user who chats with the event bot (RSVP count, daily message). |
 | Maintainer | One student (Pyae). Edits content files, merges PRs, deploys, moderates the wall. |
-| On-site organizer | Team members supervising the four tables; read the sign-up sheet (exported from the store) to plan tables and pair students. |
+| On-site organizer | Team members running the charm tables; read the sign-up sheet (exported from the store) to plan materials and pair students. |
 
 ## 3. Functional requirements
 
@@ -47,27 +50,29 @@ free tiers of Vercel and Supabase.
   (Root Cove), and a one-line summary of what happens at the event.
   *Evidence: 91% of survey respondents (N=32 at close) said they would check the date/venue
   or what is happening first.*
-- **F-02 Activity page.** A dedicated section describing stress ball making:
-  how it works (pairs, four texture tables, organizers pair visitors by
-  matching squishy preference, table prizes), the materials list,
-  and the day's schedule. Pairing rule: match by preference (team decision
-  2026-10-07, "for now"; revisit if it does not work on the day).
+- **F-02 Activity page.** A dedicated section describing Charm & Chatter:
+  how it works (pairs; each person builds their own 18-link bracelet and
+  picks 4 charms that reflect their personality), the materials, and the
+  day's schedule (7:00pm to 9:00pm, Root Cove). Pairing rule: match by
+  preference (team decision 2026-10-07, "for now"), now read as charm
+  style preference; revisit if it does not work on the day.
 - **F-03 Sign-up (RSVP).** A sign-up form (name optional, group size, and the
-  visitor's squishy preference) so the team can plan tables and expect
-  headcount. Walk-ins remain possible; sign-up is a planning tool, not a gate.
+  visitor's charm style preference) so the team can plan materials and
+  expect headcount. Walk-ins remain possible; sign-up is a planning tool, not a gate.
   A **live sign-up count** is displayed on the landing page.
-  *Evidence: 56% of bot-survey respondents (18 of 32) wanted a live RSVP count; meeting
-  notes require sign-ups to plan four tables of ~5.*
+  *Evidence: 56% of bot-survey respondents (18 of 32) wanted a live RSVP count; the
+  EPF sizes materials for 30 participants (30 base bracelets, 120 charms).*
 - **F-04 Friendship wall.** Visitors can post a short message (280 chars max),
   read the list of all messages, and delete their own post. No login.
   *Evidence: 76% of respondents (25 of 33) said they would post or maybe post.*
 - **F-05 Interactive activity module (pluggable).** The site carries exactly
   one interactive slot, loaded from a single config pointer (ADR-005).
-  **Module v1: "What stress ball are you?"** a short preference flow that
-  produces the visitor's squishy description, saved as an output. This
-  doubles as the preference collection for on-site pairing (F-03) and the
-  "life of its own" the brief asks for. The interface must also fit the
-  friendship band designer, the next candidate, so a swap is a config change.
+  **Module v1: "What charm are you?"** a short preference flow that ends
+  on one of the event's actual charm designs (cats, flowers, hearts,
+  celestial, patterns, words), saved as an output. This doubles as the
+  preference collection for on-site pairing (F-03) and the "life of its
+  own" the brief asks for. (Replaces "What stress ball are you?" with the
+  2026-10-20 activity change; no module code had been written yet.)
 - **F-06 Saved outputs gallery.** A public page listing saved activity outputs
   (opt-in per visitor). Outputs carry their activity id so a future activity
   swap does not corrupt past outputs.
@@ -112,8 +117,8 @@ free tiers of Vercel and Supabase.
 - **N-06 One-person maintainability.** A first-year student maintains the
   whole system alongside a full course load. Content edits must not require
   code changes; every significant decision is recorded in the ADR log.
-- **N-07 Scale.** One-day event, roughly 30 students on site (four tables of
-  ~5), a few hundred site visits across the publicity window. Free tiers must
+- **N-07 Scale.** One-day event, roughly 30 students on site (EPF expected
+  turnout, in pairs), a few hundred site visits across the publicity window. Free tiers must
   cover this; no provisioning work.
 - **N-08 AI usage rule (brief).** AI is allowed in the build but the event
   copy must be hand-written for this team and the interactive must be
@@ -123,7 +128,7 @@ free tiers of Vercel and Supabase.
 
 | Constraint | Value / source |
 |---|---|
-| Event budget | S$200 (S$100 seed + S$100 income), Phase 2 briefing. Site + bot must cost S$0 (free tiers). |
+| Event budget | S$300 (S$200 OSL seed fund + S$100 club income), EPF draft 2026-10-20 (was S$200 in the Phase 2 briefing). Materials planned at S$184.50 to S$232.50. Site + bot must cost S$0 (free tiers). |
 | Publicity start | 1 Nov 2026 (Milestone 1: publicity-ready site). |
 | Event day | 19 Nov 2026, Root Cove (Milestone 2). |
 | Marketing minimum | 1 poster + 1 IG post. |
@@ -150,7 +155,7 @@ counts shown.
 | Question | N | Result | Drives |
 |---|---|---|---|
 | Check first on the site | 32 (at close) | 47% what is happening, 44% date/venue, 6% food/other | F-01 (both above the fold) |
-| Most fun interactive | 33 | 58% stress ball (19 of 33); friendship band second (34% at close, N=32) | F-05 (module v1 = squishy; band = next candidate) |
+| Most fun interactive | 33 | 58% stress ball (19 of 33); friendship band second (34% at close, N=32) | F-05 (module v1 was squishy; after the 2026-10-20 change the event is a friendship bracelet, close to the survey's second choice) |
 | Would you post on a public wall | 33 | 55% yes (18), 21% maybe (7), 24% no / "too public" (8) | F-04 (kept: 76% yes/maybe) |
 | Useful bot features (multi) | 32 answered | 56% live RSVP count (18), 47% daily message (15), 44% trivia/quiz (14), 19% nothing (6) | F-09 (RSVP count + daily message) |
 | Free text | 32 (at close) | 16% food, 6% music/song requests, 16% positive/nothing | Food handled by event logistics (budget), not the site; music is out of scope |
@@ -186,22 +191,32 @@ counts shown.
 
 - **Trivia night / leaderboard.** Proposed in the 2026-10-06 meeting notes and
   supported by 44% (14 of 32) of bot-survey respondents, but dropped by team decision the
-  same day: the event is stress ball making only. Consequences: issue #17
+  same day: the event was stress ball making only. Consequences: issue #17
   (leaderboard) and the `scores` table are dropped; the bot's trivia command
   is not built.
-- **Friendship band designer.** Survey's second choice (34% at close). Superseded by
-  the finalized activity; retained as the next candidate behind the
-  pluggable-module interface (ADR-005), which is exactly what that ADR was
-  written for.
+- **Stress ball (squishy) making.** The survey's favourite (58%) and the
+  activity decided on 2026-10-06. Replaced by Charm & Chatter (Italian charm
+  friendship bracelets) in the EPF draft of 2026-10-20. Consequences: the
+  four texture tables, table prizes and the "What stress ball are you?"
+  quiz are dropped; issues #5, #7, #8, #10 and #15 were re-scoped. This is
+  the activity swap ADR-005 was written for; because no module code existed
+  yet, the cost was copy and issue edits only.
+- **Friendship band designer (as a digital designer).** Survey's second
+  choice (34% at close). The physical event is now a friendship bracelet,
+  so the site's interactive is the charm quiz rather than a band designer.
 
 **Open:**
 
-- Food: the loudest free-text ask (16%) is an event-budget decision (S$200),
+- Food: the loudest free-text ask (16%) is an event-budget decision (S$300),
   not a site requirement. The site can list snacks on the activity page once
   the team decides (F-10 makes that a one-line edit).
 - ADR-010 (bot runtime) is now decidable: both confirmed bot features fit
   serverless (an on-demand count command plus a scheduled daily post), which
   favors the Vercel path. Closes with the bot definition issue (#18).
+
+- EPF section E (personal data) must be ticked "Yes" if the RSVP collects
+  any personal data (tracked in #22). The EPF is due to SG Events by
+  Thu 22 Oct (4 weeks before the event).
 
 **Venue change (2026-10-06):** event moved from Fri 20 Nov / Campus Center to
 **Thu 19 Nov / Root Cove**. All dates and venue text in this document and in

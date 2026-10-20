@@ -10,10 +10,11 @@ EnROOT trial cohort.
 - **Theme:** Friendship
 - **Date:** Thursday, 19 November 2026
 - **Venue:** Root Cove, SUTD
-- **Activities:** stress ball (squishy) making in pairs at four texture
-  tables (team decision 2026-10-06; trivia night and the band designer cut,
-  see `docs/00-software-requirements.md` section 9). The site's interactive is
-  a pluggable module (ADR-005); v1 = "What stress ball are you?"
+- **Event:** Charm & Chatter, 7:00pm to 9:00pm. Italian charm friendship
+  bracelets, made in pairs: each person builds an 18-link bracelet and picks
+  4 charms (EPF draft 2026-10-20; replaces stress ball making, see
+  `docs/00-software-requirements.md` section 9). The site's interactive is
+  a pluggable module (ADR-005); v1 = "What charm are you?"
 
 Full program context (trial cohort, ROOTech requirements, Phase 2 briefing) is
 in the team's notes; the ROOTech-relevant part is in
@@ -36,8 +37,8 @@ process**.
 
 The live page is currently a **holding page**: theme (Friendship), date
 (Thu 19 Nov 2026), venue (Root Cove) and a timeline. The theme was drawn 6 Oct;
-the real event site is the next build: landing + stress ball activity page +
-"What stress ball are you?" quiz + RSVP for the first milestone, then the
+the real event site is the next build: landing + Charm & Chatter activity page +
+"What charm are you?" quiz + RSVP for the first milestone, then the
 friendship wall, gallery and Telegram bot as optional extras, per the ADRs
 above.
 
@@ -69,7 +70,10 @@ above.
 4. **Theme drawn 6 Oct (Friendship); event = 19 Nov, Root Cove** (moved from
    20 Nov / Campus Center on 6 Oct). Documented
   the target architecture in `docs/` (4 docs + ADR log).
-5. **Next:** build the real event site (landing, activity page, quiz, RSVP),
+5. **Activity changed 20 Oct:** stress ball making replaced by Charm & Chatter
+   (Italian charm bracelets) in the EPF draft. Copy, SRS and issues re-scoped;
+   no code had to change (ADR-005).
+6. **Next:** build the real event site (landing, activity page, quiz, RSVP),
   stand up Supabase, deploy. Stretch: wall, gallery, and the Python Telegram
   bot (live count + daily message; ADR-010 fixes its runtime).
 
