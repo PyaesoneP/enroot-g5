@@ -70,7 +70,7 @@ export function CharmBuilder() {
         ? `Tap another link to move ${labels.get(id)}, or pick a charm to swap it.`
         : `Link ${selected + 1} selected: pick a charm for it.`;
     }
-    if (full) return "All four on. Tap a charm on the bracelet to move it, or copy the link.";
+    if (full) return "All four on. Tap a charm on the bracelet to move it.";
     return `${picks.length} of ${charms.pickCount} on. Tap any link to choose where the next one goes.`;
   }
 
@@ -79,7 +79,7 @@ export function CharmBuilder() {
       await navigator.clipboard.writeText(window.location.href);
       setCopied(true);
     } catch {
-      setHint("Could not copy. The address bar has your link.");
+      setHint("Could not copy. Copy the address from your browser's address bar instead.");
     }
   }
 
@@ -123,14 +123,14 @@ export function CharmBuilder() {
         <p className="text-center text-sm text-muted" aria-live="polite">
           {status()}
         </p>
-        <div className="flex justify-center gap-3">
+        <div className="flex flex-wrap justify-center gap-3">
           <button
             type="button"
             onClick={copyLink}
             disabled={picks.length === 0}
             className="rounded-full bg-rose px-5 py-2.5 text-sm font-semibold text-rose-ink hover:opacity-90 disabled:opacity-40"
           >
-            {copied ? "Link copied" : "Copy link"}
+            {copied ? "Link copied" : "Copy bracelet link"}
           </button>
           <button
             type="button"
@@ -141,6 +141,7 @@ export function CharmBuilder() {
             Start over
           </button>
         </div>
+        <p className="text-center text-xs text-muted">{charms.shareHint}</p>
       </section>
 
       {/* Catalogue. min-w-0: let the chip row scroll instead of widening the grid. */}
