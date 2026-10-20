@@ -1,4 +1,4 @@
-import { charms } from "@/lib/content";
+import { charms, type Vibe } from "@/lib/content";
 
 // A charm on a given link of the bracelet. Slots run 0..linkCount-1 around
 // the ring; slots 0..pickCount-1 are the front, centred at the top.
@@ -73,4 +73,28 @@ export function move(picks: Picks, from: number, to: number): Picks {
   return picks
     .map((p) => (p.slot === from ? { ...p, slot: to } : p.slot === to ? { ...p, slot: from } : p))
     .sort(bySlot);
+}
+
+const vibeOfCategory = new Map(charms.vibes.flatMap((v) => v.categories.map((c) => [c, v] as const)));
+const categoryOf = new Map(charms.charms.map((c) => [c.id, c.category]));
+const fromFront = (slot: number) => Math.min(Math.abs(slot - front), n - Math.abs(slot - front));
+
+// The pairing group for a finished bracelet: the vibe most of its charms
+// belong to. On a tie, the tied vibe with a charm nearest the front wins.
+// Undefined until all pickCount charms are on.
+export function vibeOf(picks: Picks): Vibe | undefined {
+  if (picks.length < charms.pickCount) return undefined;
+  const tally = new Map<Vibe, { count: number; nearest: number }>();
+  for (const p of picks) {
+    const vibe = vibeOfCategory.get(categoryOf.get(p.id) ?? "");
+    if (!vibe) continue;
+    const t = tally.get(vibe) ?? { count: 0, nearest: Infinity };
+    tally.set(vibe, { count: t.count + 1, nearest: Math.min(t.nearest, fromFront(p.slot)) });
+  }
+  let best: Vibe | undefined;
+  for (const [vibe, t] of tally) {
+    const b = best && tally.get(best)!;
+    if (!b || t.count > b.count || (t.count === b.count && t.nearest < b.nearest)) best = vibe;
+  }
+  return best;
 }

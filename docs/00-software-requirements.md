@@ -41,7 +41,7 @@ free tiers of Vercel and Supabase.
 | Visitor | Anonymous student on a phone. Views the site, signs up, posts to the wall, plays the interactive. No account. |
 | Bot user | Telegram user who chats with the event bot (RSVP count, daily message). |
 | Maintainer | One student (Pyae). Edits content files, merges PRs, deploys, moderates the wall. |
-| On-site organizer | Team members running the charm tables; read the sign-up sheet (exported from the store) to plan materials and pair students. |
+| On-site organizer | Team members running the four vibe tables; read the sign-up sheet (exported from the store) to plan tables and charm stock per vibe. |
 
 ## 3. Functional requirements
 
@@ -54,11 +54,13 @@ free tiers of Vercel and Supabase.
   how it works (pairs; each person builds their own 18-link bracelet and
   picks 4 charms that reflect their personality), the materials, and the
   day's schedule (7:00pm to 9:00pm, Root Cove). Pairing rule: match by
-  preference (team decision 2026-10-07, "for now"), now read as charm
-  style preference; revisit if it does not work on the day.
+  preference (team decision 2026-10-07), made concrete on 2026-10-20 as
+  **match by vibe** (F-05a): one table per vibe, pairs form at the table,
+  leftovers pair with a neighbouring table, walk-ins pick a vibe card at the
+  door. Revisit if it does not work on the day.
 - **F-03 Sign-up (RSVP).** A sign-up form (name optional, group size, and the
-  visitor's charm style preference) so the team can plan materials and
-  expect headcount. Walk-ins remain possible; sign-up is a planning tool, not a gate.
+  visitor's bracelet picks with their vibe, F-05a) so the team can plan
+  tables, charm stock and headcount. Walk-ins remain possible; sign-up is a planning tool, not a gate.
   A **live sign-up count** is displayed on the landing page.
   *Evidence: 56% of bot-survey respondents (18 of 32) wanted a live RSVP count; the
   EPF sizes materials for 30 participants (30 base bracelets, 120 charms).*
@@ -76,6 +78,16 @@ free tiers of Vercel and Supabase.
   brief asks for. (Replaces "What stress ball are you?" with the
   2026-10-20 activity change, and the "What charm are you?" quiz idea by
   team request the same day; no module code had been written yet.)
+- **F-05a Vibe.** Exact matching on charms and positions is impossible
+  (99 designs on 18 links), so pairing uses a coarse group. Each charm's
+  style family belongs to one of four **vibes** (Sweet: love + flowers;
+  Playful: animals + fun; Dreamy: sky; Bold: patterns + words), set in
+  `content/charms.json`. A finished bracelet's vibe is the one most of its 4
+  charms belong to; on a tie, the tied vibe with a charm nearest the front
+  wins. The builder shows the vibe once 4 charms are on. Four groups (not
+  five) keep about 7 to 8 people per table at ~30 turnout, so few tables end
+  on an odd number. The build fails if a style family is in no vibe or in
+  two.
 - **F-06 Saved outputs gallery.** A public page listing saved activity outputs
   (opt-in per visitor). Outputs carry their activity id so a future activity
   swap does not corrupt past outputs.
@@ -123,7 +135,7 @@ free tiers of Vercel and Supabase.
   whole system alongside a full course load. Content edits must not require
   code changes; every significant decision is recorded in the ADR log.
 - **N-07 Scale.** One-day event, roughly 30 students on site (EPF expected
-  turnout, in pairs), a few hundred site visits across the publicity window. Free tiers must
+  turnout, in pairs at four vibe tables of 7 to 8), a few hundred site visits across the publicity window. Free tiers must
   cover this; no provisioning work.
 - **N-08 AI usage rule (brief).** AI is allowed in the build but the event
   copy must be hand-written for this team and the interactive must be
@@ -174,6 +186,7 @@ counts shown.
 | F-03 | 004 | #15 | M2 |
 | F-04 | 004, 008, 009 | #14, #13 | M2 |
 | F-05 | 005 | #9, #10 | M1 |
+| F-05a | 003, 005 | #10, #15 | M1 |
 | F-06 | 004, 005 | #16 | M2 |
 | F-07 | 008 | #13 | M2 |
 | F-08 | 009 | #11 | M1 |
