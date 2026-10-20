@@ -1,3 +1,5 @@
+import { event } from "@/lib/content";
+
 export default function Home() {
   return (
     <div className="min-h-screen bg-zinc-50 font-sans text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
@@ -9,8 +11,8 @@ export default function Home() {
               G5
             </span>
             <div>
-              <p className="text-sm font-semibold leading-tight">EnROOT Group 5</p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">15th ROOT, SUTD</p>
+              <p className="text-sm font-semibold leading-tight">{event.host}</p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">{event.cohort}</p>
             </div>
           </div>
           <a
@@ -27,20 +29,16 @@ export default function Home() {
       {/* Main */}
       <main className="mx-auto flex max-w-3xl flex-col px-6 py-10 sm:py-16">
         <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-          Thursday 19 November 2026, 7pm to 9pm - Root Cove, SUTD
+          {event.dateLabel}, {event.timeLabel} - {event.venue}
         </p>
         <h1 className="mt-2 text-3xl font-semibold leading-tight sm:text-4xl">
-          Charm &amp; Chatter
+          {event.name}
         </h1>
         <p className="mt-1 text-sm font-medium text-zinc-500 dark:text-zinc-400">
-          Theme: Friendship
+          Theme: {event.theme}
         </p>
         <p className="mt-3 max-w-prose text-base leading-7 text-zinc-600 dark:text-zinc-400">
-          Pair up and make Italian charm friendship bracelets: each of you
-          builds your own and picks four charms that say something about you.
-          EnROOT Group 5 is hosting it for the 15th
-          ROOT. The activity page and sign-up are being built now and open
-          before publicity starts on 1 Nov.
+          {event.summary} {event.status}
         </p>
 
         {/* Timeline */}
@@ -49,15 +47,7 @@ export default function Home() {
             Timeline
           </h2>
           <ol className="mt-4 space-y-4">
-            {[
-              { label: "1 Oct", detail: "Events briefing", done: true },
-              { label: "6 Oct", detail: "Theme drawn: Friendship", done: true },
-              { label: "20 Oct", detail: "Event proposal drafted: Charm & Chatter", done: true },
-              { label: "From 14 Oct", detail: "Draw lots, then pick event week", done: false },
-              { label: "1 Nov", detail: "Publicity material (poster + IG)", done: false },
-              { label: "19 Nov", detail: "Event day: Friendship at Root Cove", done: false },
-              { label: "Dec", detail: "Final members revealed", done: false },
-            ].map((step, i) => (
+            {event.timeline.map((step, i) => (
               <li key={i} className="flex items-start gap-3">
                 <span
                   className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold ${

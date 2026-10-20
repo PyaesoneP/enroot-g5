@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { event } from "@/lib/content";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,9 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Charm & Chatter - EnROOT Group 5, 15th ROOT, SUTD",
-  description:
-    "Charm & Chatter: make Italian charm friendship bracelets with a partner. EnROOT Group 5 (15th ROOT, SUTD), Thursday 19 November 2026 at Root Cove, SUTD.",
+  title: `${event.name} - ${event.host}, ${event.cohort}`,
+  description: event.description,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -1,0 +1,24 @@
+{
+  "name": "Charm & Chatter",
+  "theme": "Friendship",
+  "host": "EnROOT Group 5",
+  "cohort": "15th ROOT, SUTD",
+  "date": "2026-11-19",
+  "dateLabel": "Thursday 19 November 2026",
+  "timeLabel": "7pm to 9pm",
+  "venue": "Root Cove, SUTD",
+  "summary": "Pair up and make Italian charm friendship bracelets: each of you builds your own and picks four charms that say something about you.",
+  "description": "Charm & Chatter: make Italian charm friendship bracelets with a partner. EnROOT Group 5 (15th ROOT, SUTD), Thursday 19 November 2026 at Root Cove, SUTD.",
+  "status": "EnROOT Group 5 is hosting it for the 15th ROOT. The activity page and sign-up are being built now and open before publicity starts on 1 Nov.",
+  "schedule": [
+    { "time": "7:00pm to 9:00pm", "detail": "Charm bracelet making in pairs. Your bracelet goes home with you" }
+  ],
+  "timeline": [
+    { "label": "1 Oct", "detail": "Events briefing", "done": true },
+    { "label": "6 Oct", "detail": "Theme drawn: Friendship", "done": true },
+    { "label": "20 Oct", "detail": "Event proposal drafted: Charm & Chatter", "done": true },
+    { "label": "1 Nov", "detail": "Publicity material (poster + IG)", "done": false },
+    { "label": "19 Nov", "detail": "Event day: Charm & Chatter at Root Cove", "done": false },
+    { "label": "Dec", "detail": "Final members revealed", "done": false }
+  ]
+}
