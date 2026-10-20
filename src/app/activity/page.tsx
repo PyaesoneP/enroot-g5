@@ -11,7 +11,7 @@ const sectionHeading =
 
 export default function ActivityPage() {
   return (
-    <main className="mx-auto flex max-w-3xl flex-col px-6 py-10 sm:py-16">
+    <main className="mx-auto flex w-full max-w-3xl flex-col px-6 py-10 sm:py-16">
       <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
         {event.dateLabel}, {event.timeLabel} - {event.venue}
       </p>
