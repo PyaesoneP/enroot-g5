@@ -184,19 +184,17 @@ submitScore(token, score)        topScores(n)
 
 **Responsibility:** be the Telegram front end of the *same* system. It shares the
 store via the DAL contract (server-side, service-role), and its **feature is
-itself pluggable** (the same idea as C2, applied to the bot): candidates are an
-interactive **trivia** (scores -> `scores`), a **scheduled daily "friendship
-word"** (a post to the wall on a timer), and an **RSVP mirror** (bot posts the
-live count). The team's pick is a config decision.
+itself pluggable** (the same idea as C2, applied to the bot). The team's pick
+(#18, ADR-010): a `/count` command (live sign-up count), a daily **charm of
+the day** post, and **event-day nudges** on 19 Nov.
 
 **Key traits:**
 
 - Second consumer of C4 through the same operation contract as C1 (ADR-006):
  no private database, no sync job.
-- Runtime is **the open question of the architecture** (ADR-010, pending):
- webhook serverless if the feature is request/response or scheduled; a cheap
- VPS if a persistent loop is required. The component diagram is deliberately
- runtime-agnostic.
+- Runtime (ADR-010, accepted): Vercel serverless, a webhook function for
+ `/count` and cron functions for the scheduled posts. No persistent loop, so
+ no VPS. The component diagram stays runtime-agnostic.
 - Its service-role credentials are server-side only; they never reach C1 or the
  browser.
 
@@ -238,7 +236,7 @@ flowchart LR
     ST["Storage (optional)"]
   end
 
-  VPS["Cheap VPS (candidate runtime)<br/>C5, only if a persistent loop is needed<br/>(ADR-010 pending)"]
+  VPS["Cheap VPS (rejected runtime)<br/>C5 would need it only for a persistent loop<br/>(ADR-010: not needed)"]
 
   U(["User's phone<br/>Telegram client"])
 

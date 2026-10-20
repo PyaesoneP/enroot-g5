@@ -59,7 +59,7 @@ above.
 - Tailwind CSS 4
 - Supabase (Postgres + RLS + anonymous Auth) behind a typed data layer
 - Deployed on Vercel (static site + serverless route handlers)
-- Telegram bot (Python), shared store, runtime pending (ADR-010)
+- Telegram bot (Python), shared store, Vercel webhook + cron (ADR-010)
 
 ## Process
 
@@ -75,7 +75,7 @@ above.
    no code had to change (ADR-005).
 6. **Next:** build the real event site (landing, activity page, quiz, RSVP),
   stand up Supabase, deploy. Stretch: wall, gallery, and the Python Telegram
-  bot (live count + daily message; ADR-010 fixes its runtime).
+  bot (live count, charm of the day, event-day nudges; ADR-010).
 
 ## Run locally
 

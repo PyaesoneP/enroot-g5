@@ -60,8 +60,8 @@ not a "layer" of the site; it is a sibling front end.
 
 ### 4.2.3 Serverless (FaaS)
 
-**Where:** C3a (route handlers), and the bot *if* the webhook path wins
-(ADR-010).
+**Where:** C3a (route handlers), and the bot: a webhook function plus cron
+functions (ADR-010).
 
 **Mapping.** There is no always-on process the team operates. The dynamic
 endpoints are stateless functions invoked per request; the static site is a CDN
@@ -227,11 +227,10 @@ is what makes the style worth documenting.
 Honest notes on the two places the current style mix is *not* final, so a
 reviewer knows the open seams:
 
-1. **The bot's runtime (ADR-010, pending).** If the winning bot feature needs a
-  persistent loop, the *serverless* style (4.2.3) is violated for that one
-  component and a cheap VPS is introduced. The rest of the architecture is
-  unaffected; only C5's execution model changes. That is the deliberate
-  isolation of the open decision.
+1. **The bot's runtime (ADR-010, accepted 2026-10-20).** All bot features are
+  request/response or scheduled, so the bot stays serverless (4.2.3). If a
+  later feature needed a persistent loop, a cheap VPS would be introduced for
+  C5 alone; the rest of the architecture is unaffected.
 2. **If the activity or the store grows.** A second, concurrent activity, or a
   need for non-developer content editors, would be the first pressure on the
   strategy (4.2.6) and content-as-code (ADR-003) choices. Both are contained

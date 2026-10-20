@@ -229,7 +229,7 @@ same wall, the same RSVP, the same outputs.
 Supabase store** (ADR-004). The bot is an *integration* component, not a peer
 service with its own database. It talks to the store with its own
 server-side credentials (never exposed to the client) and is itself a
-pluggable feature (its exact behavior is undecided, ADR-010).
+pluggable feature (its behavior is fixed in ADR-010).
 
 **Consequences.**
 
@@ -240,8 +240,7 @@ pluggable feature (its exact behavior is undecided, ADR-010).
 + One store to secure (RLS covers both consumers).
 - The bot and the site must agree on schema; a change to a table affects both.
  The data layer (ADR-004) is where that agreement is enforced.
-- The bot needs a runtime (ADR-010), which is the one pending decision in this
- architecture.
+- The bot needs a runtime; ADR-010 settles it (Vercel webhook + cron).
 
 **Alternatives.**
 
@@ -369,46 +368,54 @@ it may be genuinely offensive.
 
 ## ADR-010 - Telegram bot runtime
 
-**Status:** **Pending** *(blocked on deciding what the bot does at the event)*
+**Status:** Accepted (2026-10-20; was Pending until the bot's features were
+fixed in #18)
 
 **Context.** The bot (ADR-006) is a Python process that talks to the shared
 store. It needs **a place to run**. The team cannot use the Oracle free tier,
-and the choice of runtime depends on the bot's behavior, which is not yet
-decided. A command/trivia-style bot (request/response) has different needs than
-a bot that holds a long-running polling loop.
+and the choice of runtime depended on the bot's behavior: a request/response
+or scheduled bot fits serverless, a long-polling loop does not. The behavior
+is now fixed (#18):
 
-**Decision (provisional, to be confirmed once bot behavior is fixed).**
-Prefer **Vercel serverless** for the bot's HTTP surface (a Telegram **webhook**
-endpoint as a serverless function, or a small scheduled function for
-time-based posts), reusing ADR-007's zero-infra posture. If the bot proves to
-need a **persistent connection** (long-polling, or a loop that must run
-continuously), fall back to a **low-cost VPS** (e.g. Hetzner, a few euros/month)
-running the bot with a process manager. The decision between these two is
-**deliberately left open** until the bot's feature is defined; this ADR records
-that it is owed, not that it has been made.
+1. `/count`: replies with the live sign-up count (on demand).
+2. **Charm of the day**: one post a day in the event channel during the
+   publicity window (1 to 18 Nov): one charm from `content/charms.json`, a
+   short friendship line, a countdown, and a link that opens the builder with
+   that charm on the bracelet. The charm is picked by date, so no state is
+   kept.
+3. **Event-day nudges** on 19 Nov: a morning post ("tonight, 7pm") and a
+   late-afternoon post ("starts at 7pm, walk-ins welcome").
 
-**Consequences (of the two candidate paths).**
+**Decision.** Run the bot on **Vercel serverless**, in the same project as the
+site (ADR-007): a Telegram **webhook** function answers `/count`, and
+**scheduled functions (Vercel cron)** send the daily and event-day posts. No
+persistent process and no VPS. The posts go to an event channel; the bot does
+not store Telegram user or chat IDs.
 
-+ *Vercel serverless:* zero infra, free tier, consistent with ADR-007; the bot
- is "always on" via webhook without a running process.
-- *Vercel serverless:* function cold starts and timeout limits; a long-polling
- bot does not fit well.
-+ *Cheap VPS:* a persistent loop is trivial; full control.
-- *VPS:* a server to manage (violates deployability, Doc 1 1.3), a cost, and a
- new credential to secure.
+**Consequences.**
+
++ Zero infra, free tier, consistent with ADR-007; nothing to keep running.
++ Every feature is either request/response or time-based, so nothing needs a
+ polling loop.
++ Charm of the day reads the same `content/charms.json` as the site (ADR-003),
+ so pruning or relabelling a charm changes both.
+- Cron on the free plan is coarse: at most daily per job and precise only to
+ within the hour (to verify against the current Vercel limits before
+ building). Message copy must not promise exact minutes ("starts at 7pm", not
+ "starts in 1 hour"). Two jobs cover all posts: a morning job (charm of the
+ day, or the morning nudge on 19 Nov) and a late-afternoon job (19 Nov only).
+- Function cold starts add a second or so to the first `/count` reply.
+- Telegram photo posts may not accept the site's WebP charm images; PNG
+ copies may be needed (to check when implementing, #19).
 
 **Alternatives.**
 
-- **GitHub Actions on a schedule.** Viable for a *cron-style* bot (post a daily
- "friendship word"), no server needed. A strong candidate if the bot is
- scheduled rather than interactive; not a fit for interactive commands.
+- **Cheap VPS (e.g. Hetzner) with a polling bot.** Precise timing and full
+ control, but a server to manage, a cost, and a credential to secure.
+ Rejected: no feature needs it.
+- **GitHub Actions on a schedule.** Viable for the posts, not for `/count`;
+ would split the bot across two runtimes. Rejected.
 - **Oracle free tier.** Ruled out (unavailable to the team).
-- **No persistent bot (webhook-only, no loop).** Equivalent to the Vercel
- serverless path.
-
-**Open question that unblocks this ADR:** what does the bot *do* at the event
-(interactive trivia? a scheduled daily post? an RSVP mirror?). Once that is
-fixed, this ADR is closed by choosing webhook-serverless vs VPS.
 
 ---
 
@@ -425,4 +432,4 @@ fixed, this ADR is closed by choosing webhook-serverless vs VPS.
 | 007 | Vercel serverless deployment | Accepted |
 | 008 | Anonymous, lightweight identity | Accepted |
 | 009 | UGC guardrails (validate/escape/rate-limit/filter) | Accepted |
-| 010 | Telegram bot runtime | **Pending** (bot behavior TBD) |
+| 010 | Telegram bot runtime | Accepted (Vercel webhook + cron) |
