@@ -23,8 +23,9 @@ outputs + RSVP) and the **Telegram bot** that shares its data store. The
 initial build shipped was a placeholder shell (timeline page); this is the
 design the build moves toward.
 
-The one open item is the **bot's runtime** (see ADR-010, status: pending),
-blocked on deciding what the bot does at the event.
+All ten ADRs are accepted. The last open item, the **bot's runtime**
+(ADR-010), was settled on 2026-10-20 once the bot's features were fixed:
+Vercel serverless (webhook + cron).
 
 ## Conventions
 

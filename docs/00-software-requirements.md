@@ -83,10 +83,12 @@ free tiers of Vercel and Supabase.
   server-side validation (types, length caps), escaping on render (no stored
   XSS), per-identity and per-IP rate limiting, and a small stop-word list
   kept in `content/` with a human fallback in the Supabase table UI.
-- **F-09 Telegram bot.** A Python bot over the shared store with two
-  confirmed features: (a) a command that returns the **live sign-up count**,
-  (b) a **daily friendship message** (scheduled post) on publicity and event
-  days. *Evidence (32 answered): 56% live RSVP count (18), 47% daily message
+- **F-09 Telegram bot.** A Python bot over the shared store with three
+  confirmed features (#18): (a) `/count`, the **live sign-up count**,
+  (b) **charm of the day**, a daily post (1 to 18 Nov) showing one charm with
+  a friendship line, a countdown and a link that opens the builder with that
+  charm, (c) **event-day nudges** on 19 Nov (morning and late afternoon).
+  (b) is the survey's daily friendship message, tied to the activity. *Evidence (32 answered): 56% live RSVP count (18), 47% daily message
   (15). Trivia/quiz (44%, 14) is recorded as a signal but not adopted
   (Section 9).*
 - **F-10 Content as code.** All human-editable copy (event copy, activity
@@ -210,9 +212,8 @@ counts shown.
 - Food: the loudest free-text ask (16%) is an event-budget decision (S$300),
   not a site requirement. The site can list snacks on the activity page once
   the team decides (F-10 makes that a one-line edit).
-- ADR-010 (bot runtime) is now decidable: both confirmed bot features fit
-  serverless (an on-demand count command plus a scheduled daily post), which
-  favors the Vercel path. Closes with the bot definition issue (#18).
+- ADR-010 (bot runtime): accepted 2026-10-20, Vercel webhook + cron. Every
+  bot feature is on-demand or scheduled, so no VPS.
 
 - EPF section E (personal data) must be ticked "Yes" if the RSVP collects
   any personal data (tracked in #22). The EPF is due to SG Events by
