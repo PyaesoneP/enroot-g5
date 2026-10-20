@@ -211,8 +211,8 @@ system.
 **Update (2026-10-20).** The swap happened before any module was built: the
 event changed from stress ball making to Charm & Chatter (Italian charm
 friendship bracelets), and module v1 changed from "What stress ball are you?"
-to "What charm are you?". The interface above did not change; the cost was
-copy, SRS and issue edits only (SRS section 9).
+to "Make your bracelet" (a charm picker). The interface above did not
+change; the cost was copy, SRS and issue edits only (SRS section 9).
 
 ---
 

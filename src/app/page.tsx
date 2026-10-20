@@ -25,10 +25,16 @@ export default function Home() {
         ))}
       </dl>
 
-      <div className="mt-6">
+      <div className="mt-6 flex flex-wrap gap-3">
+        <Link
+          href="/make"
+          className="inline-flex items-center rounded-md bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+        >
+          Make your bracelet
+        </Link>
         <Link
           href="/activity"
-          className="inline-flex items-center rounded-md bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+          className="inline-flex items-center rounded-md border border-zinc-300 px-4 py-2.5 text-sm font-semibold hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
         >
           How it works
         </Link>

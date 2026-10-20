@@ -3,6 +3,7 @@
 import eventJson from "@content/event.json";
 import activityJson from "@content/activity.json";
 import charmAndChatterJson from "@content/activities/charm-and-chatter.json";
+import charmsJson from "@content/charms.json";
 
 export type TimelineStep = { label: string; detail: string; done: boolean };
 export type ScheduleItem = { time: string; detail: string };
@@ -32,9 +33,24 @@ export type ActivityContent = {
   materials: string[];
 };
 
+export type CharmCategory = { id: string; label: string };
+export type Charm = { id: string; label: string; category: string };
+
+// The charm catalogue for the bracelet builder. Images live at
+// public/charms/<id>.webp; removing a charm here removes it from the site.
+export type CharmsContent = {
+  intro: string;
+  note: string;
+  linkCount: number;
+  pickCount: number;
+  categories: CharmCategory[];
+  charms: Charm[];
+};
+
 // The active interactive module (ADR-005): one config pointer.
 export type ActivityConfig = { active: string };
 
 export const event: EventContent = eventJson;
 export const activity: ActivityContent = charmAndChatterJson;
 export const activityConfig: ActivityConfig = activityJson;
+export const charms: CharmsContent = charmsJson;
