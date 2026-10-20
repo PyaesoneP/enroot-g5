@@ -68,9 +68,10 @@ free tiers of Vercel and Supabase.
 - **F-05 Interactive activity module (pluggable).** The site carries exactly
   one interactive slot, loaded from a single config pointer (ADR-005).
   **Module v1: "Make your bracelet"** (`/make`): the visitor picks 4 of the
-  event's actual charm designs and sees them on a rendered 18-link
-  bracelet. The picks are kept in the page URL (shareable, no store
-  needed) and later saved as an output. This doubles as the preference
+  event's actual charm designs, places each on any of the 18 links, and
+  sees the result on a rendered bracelet. The picks and their positions are
+  kept in the page URL (shareable, no store needed) and later saved as an
+  output. This doubles as the preference
   collection for on-site pairing (F-03) and the "life of its own" the
   brief asks for. (Replaces "What stress ball are you?" with the
   2026-10-20 activity change, and the "What charm are you?" quiz idea by

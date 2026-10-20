@@ -1,26 +1,64 @@
 @import "tailwindcss";
 
+/* Palette taken from the charms: black faces, pink accents, polished steel,
+   on a warm cream "table". Components use the semantic names (bg-paper,
+   text-ink, ...) so dark mode is a variable swap, not dark: variants. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --paper: #fbf7f2;
+  --surface: #ffffff;
+  --ink: #1d1518;
+  --muted: #6f6266;
+  --line: #eadfd9;
+  --blush: #f8dbe3;
+  --rose: #d6336c;
+  --rose-ink: #ffffff;
+  --steel: #c9c9ce;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --paper: #141012;
+    --surface: #1e181b;
+    --ink: #f6eef0;
+    --muted: #b3a5aa;
+    --line: #362c30;
+    --blush: #3a2028;
+    --rose: #f0679a;
+    --rose-ink: #1d1518;
+    --steel: #6b6b72;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-blush: var(--blush);
+  --color-rose: var(--rose);
+  --color-rose-ink: var(--rose-ink);
+  --color-steel: var(--steel);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-fraunces);
+
+  --animate-sway: sway 9s ease-in-out infinite alternate;
+  --animate-marquee: marquee 60s linear infinite;
+
+  @keyframes sway {
+    from { transform: rotateY(35deg); }
+    to { transform: rotateY(-35deg); }
+  }
+
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion-safe-only {
+    animation: none !important;
+  }
 }

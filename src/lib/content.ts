@@ -41,8 +41,12 @@ export type Charm = { id: string; label: string; category: string };
 export type CharmsContent = {
   intro: string;
   note: string;
+  // Under the copy button: what the bracelet link does.
+  shareHint: string;
   linkCount: number;
   pickCount: number;
+  // Sample bracelet on the landing page.
+  heroCharms: string[];
   categories: CharmCategory[];
   charms: Charm[];
 };

@@ -12,15 +12,16 @@ export const metadata: Metadata = {
 
 export default function MakePage() {
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col px-6 py-10 sm:py-16">
-      <h1 className="text-3xl font-semibold leading-tight sm:text-4xl">{activity.name}</h1>
-      <p className="mt-3 max-w-prose text-base leading-7 text-zinc-600 dark:text-zinc-400">
-        {charms.intro}
-      </p>
-      <p className="mt-2 max-w-prose text-sm text-zinc-500 dark:text-zinc-400">{charms.note}</p>
+    <main className="mx-auto flex w-full max-w-5xl flex-col px-6 pt-10 sm:pt-16">
+      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-rose">{event.name}</p>
+      <h1 className="mt-3 font-display text-4xl font-semibold leading-tight tracking-tight [font-variation-settings:'SOFT'_100] sm:text-5xl">
+        {activity.name}
+      </h1>
+      <p className="mt-3 max-w-prose text-lg leading-8 text-muted">{charms.intro}</p>
+      <p className="mt-2 max-w-prose text-sm text-muted">{charms.note}</p>
       <div className="mt-8">
         {/* The module reads the URL, so it renders on the client (useSearchParams). */}
-        <Suspense fallback={<p className="text-sm text-zinc-500 dark:text-zinc-400">Loading the charms...</p>}>
+        <Suspense fallback={<p className="text-sm text-muted">Loading the charms...</p>}>
           <activity.Component />
         </Suspense>
       </div>
