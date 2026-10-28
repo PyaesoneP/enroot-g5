@@ -1,0 +1,5 @@
+# Minimal Supabase CLI config — project link for db push / gen types (#4, #23).
+# Full reference: https://supabase.com/docs/guides/local-development/cli/config
+# Project: Charms_and_Chatters — AWS ap-southeast-1 (Singapore), forced by
+# the EPF no-overseas-transfer clause. Do not migrate this project.
+project_id = "ljrlsyajjcedegqqpfbk"

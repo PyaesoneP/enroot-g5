@@ -44,3 +44,6 @@ next-env.d.ts
 /Event Proposal Form*.pdf
 *:Zone.Identifier
 /Charm pieces/
+
+# supabase CLI scratch
+supabase/.temp/
