@@ -1,8 +1,9 @@
 # Doc 05 — Supabase schema (issue #4)
 
-> Status: implemented in `supabase/migrations/`, verified against Postgres 16
-> (see "Verification"). Pending: project provisioning at AWS ap-southeast-1
-> (Singapore) — forced by the EPF no-overseas-transfer clause.
+> Status: LIVE on project `ljrlsyajjcedegqqpfbk` (Charms_and_Chatters,
+> ap-southeast-1 — Singapore, forced by the EPF no-overseas-transfer clause).
+> Migrations applied via `supabase db push`; acceptance suite green on the
+> live project and on Postgres 16.
 
 ## Tables
 
