@@ -9,6 +9,12 @@
 
 reset role;
 begin;
+-- Deterministic start state (round-2 review): T4/T9/post-state measure
+-- through rsvp_live_count(), which returns NULL when hidden, and
+-- `NULL <> x` is unknown — the if-raise is skipped and a wrongly
+-- ACCEPTED insert would print PASS. Normalize both toggles; the final
+-- rollback leaves no residue.
+update public.event_config set live_count_visible = true, registration_open = true where id = true;
 set role anon;
 
 select set_config('t.base', public.rsvp_live_count()::text, false);
@@ -53,7 +59,9 @@ declare before int; after int;
 begin
   before := current_setting('t4.before')::int;
   select public.rsvp_live_count() into after;
-  if after <> before + 2 then raise exception 'T4 FAIL: live_count % -> %, expected +2', before, after; end if;
+  if after is null or after <> before + 2 then
+    raise exception 'T4 FAIL: live_count % -> %, expected +2', before, after;
+  end if;
   raise notice 'T4 PASS: live_count % -> % (+2) without row access', before, after;
 end $$;
 
@@ -143,6 +151,20 @@ begin
   end;
 end $$;
 
+-- T8c (round 2): > pickCount charms rejected (0005 tightened 18 -> 4;
+-- a bracelet physically holds 4 — content/charms.json pickCount).
+do $$
+begin
+  begin
+    insert into public.charm_picks (session_id, picks)
+    values ('sess-over-' || md5(random()::text),
+            '["a","b","c","d","e"]'::jsonb);
+    raise exception 'T8c FAIL: 5 picks accepted (cap is 4)';
+  exception when check_violation then
+    raise notice 'T8c PASS: 5 picks rejected, cap 4 enforced';
+  end;
+end $$;
+
 -- T9 (0004): closed registration rejects inserts (review #2). Toggle as
 -- postgres; anon cannot write event_config anyway, so this also proves it.
 reset role;
@@ -158,7 +180,7 @@ begin
     null;
   end;
   select public.rsvp_live_count() into after;
-  if after <> before then
+  if after is null or after <> before then
     raise exception 'T9 FAIL: insert accepted while registration closed (% -> %)', before, after;
   end if;
   raise notice 'T9 PASS: closed registration blocks inserts';
@@ -190,7 +212,7 @@ declare base int; now_ int;
 begin
   base := current_setting('t.base')::int;
   select public.rsvp_live_count() into now_;
-  if now_ <> base + 4 then
+  if now_ is null or now_ <> base + 4 then
     raise exception 'post-state wrong: base=%, now=%, expected base+4', base, now_;
   end if;
 end $$;

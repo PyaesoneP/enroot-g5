@@ -2,9 +2,9 @@
 
 > Status: LIVE on project `ljrlsyajjcedegqqpfbk` (Charms_and_Chatters,
 > ap-southeast-1 — Singapore, forced by the EPF no-overseas-transfer clause).
-> Migrations `202610270001`–`0004` applied via `supabase db push`;
-> acceptance suite (T1-T10) green on the live project and on a fresh
-> Postgres 16 replay of all four migrations.
+> Migrations `202610270001`–`0005` applied via `supabase db push`;
+> acceptance suite (T1-T10 + T8c) green on the live project and on a fresh
+> Postgres 16 replay of all five migrations.
 
 ## Tables
 
@@ -46,11 +46,15 @@
 - Registration gate is enforced **in the database**: the RSVP insert
   policy requires `public.rsvp_insert_allowed()` (definer fn checking
   `registration_open` and `count < capacity`), so direct API posts
-  cannot RSVP when closed or full.
+  cannot RSVP when closed or full. The fn locks the `event_config`
+  singleton row `for update`, serialising concurrent inserts — capacity
+  cannot be overshot by a race (0005).
 - `rsvp_live_count()` returns NULL when `live_count_visible` is off;
   returns only the number, never rows, when on.
-- `charm_picks.picks` CHECK: jsonb array, 1..18 items, ≤ 2048 bytes
-  (gallery junk / free-tier storage fill bounded).
+- `charm_picks.picks` CHECK: jsonb array, 1..**4** items (= `pickCount`
+  in `content/charms.json`; a bracelet physically holds 4 — 0005
+  tightened the original 18, which was `linkCount` by mistake),
+  ≤ 2048 bytes (gallery junk / free-tier storage fill bounded).
 - `guest_tokens` CHECK `used_count between 0 and max_uses` → concurrent
   redemptions of the same code can't both slip past the cap at the DB
   layer (the redeem path in #13 still wraps in a transaction).
@@ -62,11 +66,24 @@
 - No `service_role` RLS policies: service_role has BYPASSRLS, so such
   policies are dead code (removed in 0004). Protection for
   `guest_tokens` comes from the table-level revokes.
+- **Future tables are deny-by-default too** (0005): `alter default
+  privileges for role postgres in schema public revoke all on tables
+  from anon, authenticated, public`. Verified live — a table created
+  after 0005 shows zero anon/authenticated privileges. Caveat:
+  `supabase_admin`'s own default privileges still grant anon everything,
+  but the CLI role can't alter another role's defaults (42501); all app
+  tables are created by `postgres` via `db push`, so the gap only
+  matters if Supabase itself creates public tables owned by
+  supabase_admin — re-check with the privilege query below if that ever
+  shows up.
 
-## Verification (live + local, 2026-10-28)
+## Verification (live + local, 2026-10-29)
 
 `supabase/tests/rls_acceptance.sql` runs as role `anon`, is delta-based
-(re-runnable on a live table with real RSVPs), and asserts:
+(re-runnable on a live table with real RSVPs), normalizes both toggles
+to a known state at start (round-2 review: `NULL <> x` is unknown, so a
+hidden count could make T9/post-state print PASS on a wrongly-accepted
+insert), and asserts:
 
 | Test | Assertion | Result |
 |---|---|---|
@@ -79,17 +96,19 @@
 | T7 | `delete_pick`: wrong session + random UUID rejected; owner session accepted | PASS |
 | T8 | anon cannot read `charm_picks.session_id` (column grant) | PASS |
 | T8b | non-array and >2 KB picks rejected (CHECK) | PASS |
+| T8c | 5 picks rejected — cap is 4 = pickCount (0005) | PASS |
 | T9 | RSVP insert rejected while `registration_open = false` | PASS |
 | T10 | `rsvp_live_count()` returns NULL while `live_count_visible = false` | PASS |
 | post | net +4 rsvp rows vs. baseline sampled at run start | PASS |
 
 REST-level smoke (anon key, live project): `rsvps` read → 401,
 `charm_picks.session_id` read → 401, insert overriding `created_at` →
-401, `/rpc/rsvp_live_count` → 200.
+401, `/rpc/rsvp_live_count` → 200. Future-table posture probe (live):
+create temp table as `postgres` → anon privileges `NONE`.
 
 Replay locally: `docker run -e POSTGRES_PASSWORD=test -p 5544:5432 -d
 postgres:16-alpine`, create roles `anon`/`authenticated`/`service_role`
-(`service_role` with `bypassrls`), apply all four migration files, run
+(`service_role` with `bypassrls`), apply all five migration files, run
 the test file.
 
 ## Deliberate deviations from issue #4's draft sketch
@@ -106,6 +125,13 @@ the test file.
   needs a real per-user JWT; until then one fewer moving part.
 
 ## Open items
+
+- **#6 DAL implications**: on `charm_picks`, `.select('id')` after an
+  insert still works (`id` is select-granted), but any query touching
+  `session_id` — `.eq('session_id', ...)`, `.select('session_id')` —
+  is now a permission error. The client stores its session token
+  locally (localStorage) and keeps pick ids from insert responses; it
+  never queries by session. Nothing in src/ touches the DB yet.
 
 - Vercel env vars (`NEXT_PUBLIC_SUPABASE_URL`, anon key; service-role key
   server-side only) land with #23.
