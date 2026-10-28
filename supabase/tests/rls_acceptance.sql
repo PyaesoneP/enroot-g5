@@ -1,5 +1,6 @@
 -- Acceptance tests for issue #4: run everything as role "anon".
-\set ON_ERROR_STOP on
+-- Pure SQL (no psql meta-commands) so it runs under both
+-- `psql -v ON_ERROR_STOP=1 -f` and `supabase db query --linked -f`.
 
 reset role;
 begin;
@@ -19,7 +20,7 @@ end $$;
 -- T2: insert WITH consent must succeed
 insert into public.rsvps (nickname, consent_given) values ('alice', true);
 insert into public.rsvps (nickname, consent_given) values ('bob', true);
-\echo 'T2 PASS: consent inserts ok'
+do $$ begin raise notice 'T2 PASS: consent inserts ok'; end $$;
 
 -- T3: anon must NOT see any rsvp rows (either empty result or hard denial)
 do $$
@@ -95,7 +96,10 @@ declare n int;
 begin
   select public.rsvp_live_count() into n;  -- service-role view of true count
   if n <> 4 then raise exception 'post-state wrong: %', n; end if;  -- 2 (T2) + 2 (T4)
-  raise notice 'ALL TESTS PASS (4 rows in-txn, hidden from anon)';
 end $$;
+
+-- Success row for channels that drop NOTICEs (supabase db query):
+-- a failure raises first and this row is never returned.
+select 'ALL TESTS PASS (T1-T7 + post-state; 4 in-txn rows hidden from anon)' as result;
 
 rollback;  -- suite leaves no residue: re-runnable on any schema
