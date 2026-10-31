@@ -12,7 +12,8 @@
 -- service_role (called by the Next server via src/lib/db.ts). The service
 -- role bypasses RLS, so the function checks bounds, the vibe
 -- whitelist, picks shape, and people-based capacity itself; consent is
--- stored as true unconditionally (0008 CHECK + this function).
+-- stored as true unconditionally (the rsvp_consent_true CHECK below +
+-- this function).
 
 -- 1. No public writes to rsvps at all. Table-level revoke covers the
 --    0006 column grants too; nothing is re-granted to anon/authenticated.

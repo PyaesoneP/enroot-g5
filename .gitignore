@@ -47,3 +47,6 @@ next-env.d.ts
 
 # supabase CLI scratch
 supabase/.temp/
+
+# local agent tool scratch (magic-context)
+.cortexkit/

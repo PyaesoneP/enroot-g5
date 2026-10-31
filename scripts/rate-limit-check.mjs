@@ -16,8 +16,10 @@ for (let i = 0; i < 10; i++) {
 assert.equal(reserveSignup(ip, t0).allowed, false, "11th attempt should be blocked");
 
 // Parallel race: reserve happens synchronously before any await, so a
-// second concurrent request sees the first's reservation. 10 parallel
-// reserves from a fresh IP -> exactly 10 pass.
+// second concurrent request sees the first's reservation. 12 reserves
+// from a fresh IP -> exactly 10 pass. This is a synchronous stand-in for
+// the real race; the live proof is 12 parallel curls to the server
+// (10 stored, 2 blocked), see PR #37 review round 2.
 const ip2 = "5.6.7.8";
 const results = Array.from({ length: 12 }, () => reserveSignup(ip2, t0).allowed);
 assert.equal(results.filter(Boolean).length, 10, "parallel burst capped at 10");

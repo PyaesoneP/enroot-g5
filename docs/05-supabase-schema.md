@@ -116,10 +116,11 @@ count could make a wrongly-accepted insert print PASS), and assert:
 | S1 | valid submits accepted; count counts people (+3) | PASS |
 | S2 | null/empty/41-char nickname, group 0/6, unknown vibe, bad picks shapes → `invalid`, nothing stored | PASS |
 | S3 | stored rows carry `consent_given` | PASS |
-| S4 | capacity is people-based: overshooting group returns `full`, headcount unchanged | PASS |
+| S4 | capacity is people-based: overshooting group returns `short` (headcount unchanged), exact fill returns `full`, `spots_left` accurate | PASS |
 | S5 | closed registration → `closed`, nothing stored | PASS |
 | S6 | hidden count → NULL even for service_role | PASS |
-| post | each suite rolls back — net-zero rows | PASS |
+| S7 | missing event_config row → `closed` (fail-closed, 0008) | PASS |
+| post | anon suite asserts a net-zero table after every test | PASS |
 
 REST-level smoke (anon key, live project): `rsvps` read → 401, `rsvps`
 insert → 42501, `/rpc/submit_rsvp` → 401, `charm_picks.session_id` read

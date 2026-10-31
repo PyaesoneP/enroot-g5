@@ -58,6 +58,9 @@ export async function POST(req: Request) {
   // from the parsed picks, exactly as the builder shows it.
   const picks = typeof b.picks === "string" ? parsePicks(b.picks) : null;
   const vibe = vibeOf(picks ?? []);
+  // Only complete bracelets are stored — same rule the consent text
+  // promises, enforced server-side too (round-2 finding 2).
+  const storedPicks = vibe ? picks : null;
 
   // The window slot is reserved BEFORE the database call so parallel
   // requests cannot all pass the check, and released when the row is not
@@ -77,7 +80,7 @@ export async function POST(req: Request) {
       nickname,
       groupSize,
       vibe: vibe ? (vibe.id as VibeId) : null,
-      picks,
+      picks: storedPicks,
     });
   } catch (e) {
     releaseSignup(ip);
