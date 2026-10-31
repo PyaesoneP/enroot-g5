@@ -33,6 +33,10 @@ export type ActivityContent = {
   materials: string[];
 };
 
+// Vibe ids are DB-checked (rsvps.vibe CHECK in 0006): the migration lists
+// them literally, so keep content/charms.json vibes in step with it.
+export type VibeId = (typeof charms.vibes)[number]["id"];
+
 export type CharmCategory = { id: string; label: string };
 export type Charm = { id: string; label: string; category: string };
 // A pairing group: a few style families. Each family belongs to one vibe.

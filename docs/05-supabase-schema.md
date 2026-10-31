@@ -10,7 +10,7 @@
 
 | Table | Holds | Personal data? | Who touches it |
 |---|---|---|---|
-| `rsvps` | nickname, consent record | **yes** (nickname + consent timestamp) | anon INSERT (columns `nickname`,`consent_given` only; gated, see below); service-role reads/purges |
+| `rsvps` | nickname, group size, vibe, bracelet picks, consent record | **yes** (nickname + consent timestamp) | **no public writes at all** — sign-ups go through `submit_rsvp()` (service_role only, 0007); service-role reads/purges |
 | `charm_picks` | saved bracelet builds (jsonb, shape-bound) under an opaque `session_id` | no (ADR-008 anonymous identity) | anon read (`id`,`picks`,`created_at` — **not** `session_id`) + insert; owner-scoped delete via `delete_pick()` |
 | `guest_tokens` | event-day check-in codes, **hashed** | no | service-role only; anon/authenticated fully revoked |
 | `event_config` | singleton: capacity, live-count toggle, registration toggle | no | anon read; service-role write |
@@ -36,21 +36,35 @@
   never revoked that (found in review — live check confirmed anon held
   SELECT/UPDATE/DELETE/TRUNCATE on `rsvps`). 0004 revokes all and grants
   back narrowly, **down to column level**:
-  - `rsvps`: `insert (nickname, consent_given)` only → clients cannot
-    forge `id`/`created_at`/`consent_at` (backdating blocked). SELECT
-    denied at the **table level** (not just RLS filtering).
+  - `rsvps`: **no grants to anon/authenticated at all** (0007 revoked the
+    0006 insert; SELECT was already denied at the table level). The only
+    sign-up door is `submit_rsvp(p_nickname, p_group_size, p_vibe,
+    p_picks)` — SECURITY DEFINER, EXECUTE granted to `service_role`
+    only (Supabase hands anon EXECUTE on new functions by default, so
+    the revoke names the roles explicitly). The function validates
+    bounds, the vibe whitelist, picks shape, and people-based capacity
+    (`sum(group_size)` fits the cap, `event_config` locked `for
+    update`), returns `(status, spots_left)` (0008), and stores
+    `consent_given = true` unconditionally; a table CHECK enforces
+    consent on every stored row. The Next server
+    calls it with the service-role key from `src/lib/db.ts` — clients
+    cannot post straight to PostgREST to skip `/api/rsvp`'s rate limit
+    or validation.
   - `charm_picks`: `select (id, picks, created_at)`, `insert
     (session_id, picks)` → `session_id` is unreadable through the API,
     which is what made `delete_pick()` gameable before (read a row,
     steal its token, delete the pick).
-- Registration gate is enforced **in the database**: the RSVP insert
-  policy requires `public.rsvp_insert_allowed()` (definer fn checking
-  `registration_open` and `count < capacity`), so direct API posts
-  cannot RSVP when closed or full. The fn locks the `event_config`
-  singleton row `for update`, serialising concurrent inserts — capacity
-  cannot be overshot by a race (0005).
-- `rsvp_live_count()` returns NULL when `live_count_visible` is off;
-  returns only the number, never rows, when on.
+- Registration gate is enforced **in the database**: `submit_rsvp()`
+  checks `registration_open` and `sum(group_size) + incoming <= capacity`
+  under a `FOR UPDATE` lock on the singleton, returning
+  `closed`/`full`/`short (spots_left)` instead of storing (0007 counts
+  **people**, not rows; 0008 fails closed if the config row is missing
+  and drops the old anon insert policy + `rsvp_insert_allowed()`, which
+  guarded a write path 0007 had revoked — service_role bypasses RLS, so
+  the policy never applied to the definer insert). Consent is enforced
+  by the `rsvp_consent_true` CHECK, not a policy.
+- `rsvp_live_count()` counts people (`sum(group_size)`), returns NULL
+  when `live_count_visible` is off; returns only the number, never rows.
 - `charm_picks.picks` CHECK: jsonb array, 1..**4** items (= `pickCount`
   in `content/charms.json`; a bracelet physically holds 4 — 0005
   tightened the original 18, which was `linkCount` by mistake),
@@ -79,37 +93,46 @@
 
 ## Verification (live + local, 2026-10-29)
 
-`supabase/tests/rls_acceptance.sql` runs as role `anon`, is delta-based
-(re-runnable on a live table with real RSVPs), normalizes both toggles
-to a known state at start (round-2 review: `NULL <> x` is unknown, so a
-hidden count could make T9/post-state print PASS on a wrongly-accepted
-insert), and asserts:
+`supabase/tests/rls_acceptance.sql` runs as role `anon`, and
+`supabase/tests/submit_rsvp_acceptance.sql` runs as `service_role` (the
+only role that can execute the door). Both are delta-based (re-runnable
+on a live table with real RSVPs), normalise both toggles to a known
+state at start (round-2 review: `NULL <> x` is unknown, so a hidden
+count could make a wrongly-accepted insert print PASS), and assert:
 
 | Test | Assertion | Result |
 |---|---|---|
-| T1 | RSVP insert **without** consent rejected | PASS |
-| T2 | RSVP insert with consent accepted | PASS |
+| T1 | any anon INSERT into `rsvps` rejected at the privilege level | PASS |
+| T2 | forged-column insert (`id`/`created_at`/`consent_at`) rejected | PASS |
 | T3 | anon SELECT on rsvps = hard table-level denial (no empty-result loophole) | PASS |
-| T4 | `rsvp_live_count()` grows +2 after two consented inserts, with no row access | PASS |
-| T5 | 41-char nickname rejected (CHECK) | PASS |
+| T3b | anon cannot EXECUTE `submit_rsvp` | PASS |
+| T4 | `rsvp_live_count()` grows +5 people after group_size 2+3 inserts, with no row access | PASS |
 | T6 | anon denied `guest_tokens` entirely | PASS |
 | T7 | `delete_pick`: wrong session + random UUID rejected; owner session accepted | PASS |
 | T8 | anon cannot read `charm_picks.session_id` (column grant) | PASS |
 | T8b | non-array and >2 KB picks rejected (CHECK) | PASS |
 | T8c | 5 picks rejected — cap is 4 = pickCount (0005) | PASS |
-| T9 | RSVP insert rejected while `registration_open = false` | PASS |
 | T10 | `rsvp_live_count()` returns NULL while `live_count_visible = false` | PASS |
-| post | net +4 rsvp rows vs. baseline sampled at run start | PASS |
+| S1 | valid submits accepted; count counts people (+3) | PASS |
+| S2 | null/empty/41-char nickname, group 0/6, unknown vibe, bad picks shapes → `invalid`, nothing stored | PASS |
+| S3 | stored rows carry `consent_given` | PASS |
+| S4 | capacity is people-based: overshooting group returns `short` (headcount unchanged), exact fill returns `full`, `spots_left` accurate | PASS |
+| S5 | closed registration → `closed`, nothing stored | PASS |
+| S6 | hidden count → NULL even for service_role | PASS |
+| S7 | missing event_config row → `closed` (fail-closed, 0008) | PASS |
+| post | anon suite asserts a net-zero table after every test | PASS |
 
-REST-level smoke (anon key, live project): `rsvps` read → 401,
-`charm_picks.session_id` read → 401, insert overriding `created_at` →
-401, `/rpc/rsvp_live_count` → 200. Future-table posture probe (live):
+REST-level smoke (anon key, live project): `rsvps` read → 401, `rsvps`
+insert → 42501, `/rpc/submit_rsvp` → 401, `charm_picks.session_id` read
+→ 401, `/rpc/rsvp_live_count` → 200. Future-table posture probe (live):
 create temp table as `postgres` → anon privileges `NONE`.
 
 Replay locally: `docker run -e POSTGRES_PASSWORD=test -p 5544:5432 -d
-postgres:16-alpine`, create roles `anon`/`authenticated`/`service_role`
-(`service_role` with `bypassrls`), apply all five migration files, run
-the test file.
+postgres:17-alpine`, create roles `anon`/`authenticated`/`service_role`
+(`service_role` with `bypassrls`), apply all migration files, run both
+test files. The replay starts deny-by-default (unlike live Supabase), so
+it is what caught the un-codified `service_role` grants — now written
+into 0007.
 
 ## Deliberate deviations from issue #4's draft sketch
 
@@ -133,7 +156,8 @@ the test file.
   locally (localStorage) and keeps pick ids from insert responses; it
   never queries by session. Nothing in src/ touches the DB yet.
 
-- Vercel env vars (`NEXT_PUBLIC_SUPABASE_URL`, anon key; service-role key
-  server-side only) land with #23.
+- Vercel env vars landed with the #15 deploy: `NEXT_PUBLIC_SUPABASE_URL`
+  + anon key (client/reads), `SUPABASE_SERVICE_ROLE_KEY` server-side only
+  (submit_rsvp, export).
 - #13 redeem path should `UPDATE ... SET used_count = used_count + 1`
   inside one transaction; the DB CHECK backstops the race now.

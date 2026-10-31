@@ -1,43 +1,48 @@
--- Acceptance tests for issue #4: run everything as role "anon".
--- Pure SQL (no psql meta-commands) so it runs under both
+-- Acceptance tests for issue #4 (updated for 0007): run everything as
+-- role "anon". Pure SQL (no psql meta-commands) so it runs under both
 -- `psql -v ON_ERROR_STOP=1 -f` and `supabase db query --linked -f`.
 --
--- Post 0004: anon has NO select privilege on rsvps (table-level denial,
--- not just RLS), session_id is column-revoked on charm_picks, inserts
--- are gated by registration_open + capacity, and picks are shape-bound.
--- All counts are delta-based: the suite is re-runnable on a live schema.
+-- Post 0007: rsvps is UNWRITABLE by anon at the privilege level — every
+-- sign-up goes through submit_rsvp(), service_role only. The service-side
+-- tests live in submit_rsvp_acceptance.sql. All counts are delta-based:
+-- the suite is re-runnable on a live schema.
 
 reset role;
 begin;
--- Deterministic start state (round-2 review): T4/T9/post-state measure
--- through rsvp_live_count(), which returns NULL when hidden, and
--- `NULL <> x` is unknown — the if-raise is skipped and a wrongly
--- ACCEPTED insert would print PASS. Normalize both toggles; the final
--- rollback leaves no residue.
+-- Deterministic start state (round-2 review): counts measure through
+-- rsvp_live_count(), which returns NULL when hidden, and `NULL <> x` is
+-- unknown — the if-raise would be skipped. Normalize both toggles; the
+-- final rollback leaves no residue.
 update public.event_config set live_count_visible = true, registration_open = true where id = true;
+select set_config('t.base', public.rsvp_live_count()::text, false);
 set role anon;
 
-select set_config('t.base', public.rsvp_live_count()::text, false);
-
--- T1: insert WITHOUT consent must fail (policy with check consent=true)
+-- T1 (0007): ANY anon insert into rsvps must fail — consent flag or not.
 do $$
 begin
   begin
-    insert into public.rsvps (nickname, consent_given) values ('spammer', false);
-    raise exception 'T1 FAIL: no-consent insert was accepted';
-  exception when insufficient_privilege or check_violation then
-    raise notice 'T1 PASS: no-consent insert rejected';
+    insert into public.rsvps (nickname, consent_given) values ('spammer', true);
+    raise exception 'T1 FAIL: anon insert into rsvps was accepted';
+  exception when insufficient_privilege then
+    raise notice 'T1 PASS: anon rsvp insert denied at privilege level';
   end;
 end $$;
 
--- T2: insert WITH consent must succeed
-insert into public.rsvps (nickname, consent_given) values ('alice', true);
-insert into public.rsvps (nickname, consent_given) values ('bob', true);
-do $$ begin raise notice 'T2 PASS: consent inserts ok'; end $$;
+-- T2 (0007): forged-column inserts (id/created_at/consent_at) are dead by
+-- the same privilege denial — nothing is writable, so nothing is forgeable.
+do $$
+begin
+  begin
+    insert into public.rsvps (id, nickname, consent_given, consent_at, created_at)
+    values ('11111111-1111-1111-1111-111111111111', 'forger', true,
+            '2020-01-01', '2020-01-01');
+    raise exception 'T2 FAIL: forged-column insert accepted';
+  exception when insufficient_privilege then
+    raise notice 'T2 PASS: forged-column insert denied';
+  end;
+end $$;
 
 -- T3 (0004): anon SELECT on rsvps must be a HARD table-level denial.
--- The old suite also passed on an empty result set, which hid the fact
--- that Supabase default grants still handed anon SELECT (review #5).
 do $$
 declare n int;
 begin
@@ -47,35 +52,43 @@ exception when insufficient_privilege then
   raise notice 'T3 PASS: anon SELECT denied at table level';
 end $$;
 
--- T4: live count RPC returns the real count despite T3 (delta-based)
+-- T3b (0007): submit_rsvp must not be executable by anon — otherwise any
+-- script could skip /api/rsvp's rate limit and validation.
+do $$
+begin
+  begin
+    perform public.submit_rsvp('direct-post', 1, 'sweet', null);
+    raise exception 'T3b FAIL: anon executed submit_rsvp';
+  exception when insufficient_privilege then
+    raise notice 'T3b PASS: submit_rsvp not executable by anon';
+  end;
+end $$;
+
+-- T4: live count RPC works despite T3 and counts PEOPLE (group_size sums).
 do $$
 begin
   perform set_config('t4.before', public.rsvp_live_count()::text, false);
 end $$;
-insert into public.rsvps (nickname, consent_given) values ('live-a', true);
-insert into public.rsvps (nickname, consent_given) values ('live-b', true);
+reset role;
+insert into public.rsvps (nickname, consent_given, group_size)
+  values ('t4-a', true, 2), ('t4-b', true, 3);
+set role anon;
 do $$
 declare before int; after int;
 begin
   before := current_setting('t4.before')::int;
   select public.rsvp_live_count() into after;
-  if after is null or after <> before + 2 then
-    raise exception 'T4 FAIL: live_count % -> %, expected +2', before, after;
+  if after is null or after <> before + 5 then
+    raise exception 'T4 FAIL: live_count % -> %, expected +5 people', before, after;
   end if;
-  raise notice 'T4 PASS: live_count % -> % (+2) without row access', before, after;
+  raise notice 'T4 PASS: live_count % -> % (+5 people) without row access', before, after;
 end $$;
+reset role;
+delete from public.rsvps where nickname in ('t4-a', 't4-b');
+set role anon;
 
--- T5: nickname length guard
-do $$
-begin
-  begin
-    insert into public.rsvps (nickname, consent_given)
-    values (repeat('x', 41), true);
-    raise exception 'T5 FAIL: 41-char nickname accepted';
-  exception when check_violation then
-    raise notice 'T5 PASS: over-length nickname rejected';
-  end;
-end $$;
+-- (T5, nickname length, lives in the service suite as S2: anon has no
+-- path to the nickname guard since 0007 revoked every write door.)
 
 -- T6: guest_tokens invisible + unwritable to anon
 do $$
@@ -165,30 +178,6 @@ begin
   end;
 end $$;
 
--- T9 (0004): closed registration rejects inserts (review #2). Toggle as
--- postgres; anon cannot write event_config anyway, so this also proves it.
-reset role;
-update public.event_config set registration_open = false where id = true;
-set role anon;
-do $$
-declare before int; after int;
-begin
-  select public.rsvp_live_count() into before;  -- sample HERE (T2/T4
-  begin                                          -- already added rows)
-    insert into public.rsvps (nickname, consent_given) values ('when-closed', true);
-  exception when insufficient_privilege or check_violation then
-    null;
-  end;
-  select public.rsvp_live_count() into after;
-  if after is null or after <> before then
-    raise exception 'T9 FAIL: insert accepted while registration closed (% -> %)', before, after;
-  end if;
-  raise notice 'T9 PASS: closed registration blocks inserts';
-end $$;
-reset role;
-update public.event_config set registration_open = true where id = true;
-set role anon;
-
 -- T10 (0004): live_count_visible=false -> RPC returns NULL (review #3)
 reset role;
 update public.event_config set live_count_visible = false where id = true;
@@ -204,21 +193,21 @@ reset role;
 update public.event_config set live_count_visible = true where id = true;
 set role anon;
 
--- post-state: delta-based (review #4: absolute counts break once real
--- guests RSVP). t.base was sampled at top of this txn; net effect of
--- the suite is exactly +4 rsvp rows (T2 x2, T4 x2).
+-- Post-state: the anon suite stores nothing (T4's rows were deleted), so
+-- the people count must be exactly the baseline sampled at txn start.
+-- Round-2 review: the old T5/T-post were no-ops that printed PASS.
 do $$
 declare base int; now_ int;
 begin
   base := current_setting('t.base')::int;
   select public.rsvp_live_count() into now_;
-  if now_ is null or now_ <> base + 4 then
-    raise exception 'post-state wrong: base=%, now=%, expected base+4', base, now_;
+  if now_ is null or now_ <> base then
+    raise exception 'post-state wrong: base=%, now=%, expected net-zero', base, now_;
   end if;
 end $$;
 
 -- Success row for channels that drop NOTICEs (supabase db query):
 -- a failure raises first and this row is never returned.
-select 'ALL TESTS PASS (T1-T10 + post-state; delta-based, live-safe)' as result;
+select 'ALL ANON TESTS PASS (T1-T10 + net-zero post-state; live-safe)' as result;
 
 rollback;  -- suite leaves no residue: re-runnable on any schema

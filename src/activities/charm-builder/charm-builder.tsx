@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { charms } from "@/lib/content";
+import { SignupForm } from "@/components/signup-form";
 import { Bracelet } from "./bracelet";
 import { move, nextFreeSlot, parsePicks, place, serializePicks, vibeOf, type Picks } from "./picks";
 
@@ -150,6 +151,7 @@ export function CharmBuilder() {
             Start over
           </button>
         </div>
+        <SignupForm picks={picks} />
         <p className="text-center text-xs text-muted">{charms.shareHint}</p>
       </section>
 
