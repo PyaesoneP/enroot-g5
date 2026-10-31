@@ -60,13 +60,18 @@ export async function POST(req: Request) {
   const picks = typeof b.picks === "string" ? parsePicks(b.picks) : null;
   const vibe = vibeOf(picks ?? []);
 
-  const result = await rsvp({
-    nickname,
-    consent,
-    groupSize,
-    vibe: vibe ? (vibe.id as VibeId) : null,
-    picks,
-  });
+  let result;
+  try {
+    result = await rsvp({
+      nickname,
+      consent,
+      groupSize,
+      vibe: vibe ? (vibe.id as VibeId) : null,
+      picks,
+    });
+  } catch {
+    return NextResponse.json({ error: "Could not save your sign-up. Try again." }, { status: 502 });
+  }
   if (!result.ok) {
     if (result.reason === "closed") {
       return NextResponse.json({ error: "Sign-ups are closed for now." }, { status: 403 });

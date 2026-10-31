@@ -5,17 +5,24 @@ import "server-only";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { VibeId } from "@/lib/content";
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-if (!url || !anonKey) {
-  throw new Error(
-    "NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY must be set (see README)",
-  );
+// Lazy: importing this module must not throw at build time (Vercel collects
+// page data before runtime env is guaranteed); only calls need the env.
+let client: SupabaseClient | null = null;
+function getClient(): SupabaseClient {
+  if (!client) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!url || !anonKey) {
+      throw new Error(
+        "NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY must be set (see README)",
+      );
+    }
+    // anon role: RLS + column grants apply. The service-role key is never
+    // imported here; organiser scripts use it via scripts/export-rsvps.mjs.
+    client = createClient(url, anonKey);
+  }
+  return client;
 }
-
-// anon role: RLS + column grants apply. The service-role key is never
-// imported here; organiser scripts use it via scripts/export-rsvps.mjs.
-const client: SupabaseClient = createClient(url, anonKey);
 
 export type RsvpPicks = { id: string; slot: number }[];
 
@@ -34,7 +41,7 @@ export type RsvpInput = {
 export type RsvpReject = "closed" | "db_error";
 
 export async function rsvp(input: RsvpInput): Promise<{ ok: true } | { ok: false; reason: RsvpReject }> {
-  const { error } = await client.from("rsvps").insert({
+  const { error } = await getClient().from("rsvps").insert({
     nickname: input.nickname,
     consent_given: input.consent,
     group_size: input.groupSize,
@@ -52,7 +59,11 @@ export async function rsvp(input: RsvpInput): Promise<{ ok: true } | { ok: false
 // (event_config.live_count_visible = false) or on failure — the landing
 // page renders nothing in that case.
 export async function rsvpCount(): Promise<number | null> {
-  const { data, error } = await client.rpc("rsvp_live_count", undefined);
-  if (error || data === null) return null;
-  return data as number;
+  try {
+    const { data, error } = await getClient().rpc("rsvp_live_count", undefined);
+    if (error || data === null) return null;
+    return data as number;
+  } catch {
+    return null;
+  }
 }
