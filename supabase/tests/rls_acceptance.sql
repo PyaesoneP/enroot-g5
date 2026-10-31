@@ -165,6 +165,66 @@ begin
   end;
 end $$;
 
+-- T11 (0006): valid group_size + vibe + picks on an rsvp insert accepted.
+-- Rolled back with the suite, so post-state (+4) is unaffected.
+insert into public.rsvps (nickname, consent_given, group_size, vibe, picks)
+  values ('vibe-a', true, 2, 'sweet',
+          '[{"id":"c27","slot":0},{"id":"c30","slot":1}]'::jsonb);
+do $$ begin raise notice 'T11 PASS: group_size + vibe + picks accepted'; end $$;
+
+-- T12 (0006): group_size bounds (1..5) and vibe whitelist enforced.
+do $$
+begin
+  begin
+    insert into public.rsvps (nickname, consent_given, group_size)
+    values ('group-6', true, 6);
+    raise exception 'T12 FAIL: group_size 6 accepted';
+  exception when check_violation then
+    raise notice 'T12 PASS: group_size 6 rejected';
+  end;
+  begin
+    insert into public.rsvps (nickname, consent_given, vibe)
+    values ('vibe-bogus', true, 'chaotic');
+    raise exception 'T12 FAIL: unknown vibe accepted';
+  exception when check_violation then
+    raise notice 'T12 PASS: unknown vibe rejected';
+  end;
+end $$;
+
+-- T13 (0006): rsvp picks shape-bound like charm_picks (array, <=4, <=2KB);
+-- NULL stays allowed (sign-up without a full bracelet).
+do $$
+begin
+  begin
+    insert into public.rsvps (nickname, consent_given, picks)
+    values ('picks-bogus', true, '"not-an-array"'::jsonb);
+    raise exception 'T13 FAIL: non-array rsvp picks accepted';
+  exception when check_violation then
+    raise notice 'T13 PASS: non-array rsvp picks rejected';
+  end;
+  begin
+    insert into public.rsvps (nickname, consent_given, picks)
+    values ('picks-over', true, '["a","b","c","d","e"]'::jsonb);
+    raise exception 'T13 FAIL: 5 rsvp picks accepted (cap is 4)';
+  exception when check_violation then
+    raise notice 'T13 PASS: 5 rsvp picks rejected, cap 4 enforced';
+  end;
+  begin
+    insert into public.rsvps (nickname, consent_given, picks)
+    values ('picks-big', true, jsonb_build_array(repeat('x', 2100)));
+    raise exception 'T13 FAIL: 2100-byte rsvp picks accepted';
+  exception when check_violation then
+    raise notice 'T13 PASS: oversized rsvp picks rejected';
+  end;
+end $$;
+
+-- T11's accepted row is deleted here: it counted toward rsvp_live_count()
+-- inside the txn, and the post-state delta contract is exactly +4.
+-- (anon has no DELETE on rsvps by design — clean up as postgres.)
+reset role;
+delete from public.rsvps where nickname = 'vibe-a';
+set role anon;
+
 -- T9 (0004): closed registration rejects inserts (review #2). Toggle as
 -- postgres; anon cannot write event_config anyway, so this also proves it.
 reset role;
@@ -219,6 +279,6 @@ end $$;
 
 -- Success row for channels that drop NOTICEs (supabase db query):
 -- a failure raises first and this row is never returned.
-select 'ALL TESTS PASS (T1-T10 + post-state; delta-based, live-safe)' as result;
+select 'ALL TESTS PASS (T1-T13 + post-state; delta-based, live-safe)' as result;
 
 rollback;  -- suite leaves no residue: re-runnable on any schema

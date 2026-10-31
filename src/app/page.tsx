@@ -3,8 +3,23 @@ import { Bracelet } from "@/activities/charm-builder/bracelet";
 import { placeAtDefaults } from "@/activities/charm-builder/picks";
 import { CharmStrip } from "@/components/charm-strip";
 import { charms, event } from "@/lib/content";
+import { rsvpCount } from "@/lib/db";
 
-export default function Home() {
+// Live sign-up count (#15). Re-validated server-side every 30 s; renders
+// nothing when the organiser hides the count or the lookup fails.
+export const revalidate = 30;
+
+async function LiveCount() {
+  const count = await rsvpCount();
+  if (count === null) return null;
+  return (
+    <p className="mt-4 text-sm font-semibold text-rose">
+      {count} {count === 1 ? "person has" : "people have"} signed up
+    </p>
+  );
+}
+
+export default async function Home() {
   return (
     <main>
       {/* Hero */}
@@ -46,6 +61,7 @@ export default function Home() {
             </Link>
           </div>
           <p className="mt-4 max-w-prose text-sm text-muted">{event.status}</p>
+          <LiveCount />
         </div>
 
         <div className="relative mx-auto w-full max-w-sm">
