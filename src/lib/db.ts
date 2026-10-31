@@ -7,9 +7,11 @@ import type { VibeId } from "@/lib/content";
 
 // Lazy: importing this module must not throw at build time (Vercel collects
 // page data before runtime env is guaranteed); only calls need the env.
-let client: SupabaseClient | null = null;
-function getClient(): SupabaseClient {
-  if (!client) {
+let anonClient: SupabaseClient | null = null;
+let serviceClient: SupabaseClient | null = null;
+
+function getAnonClient(): SupabaseClient {
+  if (!anonClient) {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     if (!url || !anonKey) {
@@ -17,50 +19,69 @@ function getClient(): SupabaseClient {
         "NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY must be set (see README)",
       );
     }
-    // anon role: RLS + column grants apply. The service-role key is never
-    // imported here; organiser scripts use it via scripts/export-rsvps.mjs.
-    client = createClient(url, anonKey);
+    anonClient = createClient(url, anonKey);
   }
-  return client;
+  return anonClient;
+}
+
+// Sign-ups go through submit_rsvp(), a definer function granted to
+// service_role only (0007). Direct anon INSERT is revoked, so the route
+// is the only door: clients cannot skip its rate limit or validation.
+// The key is server-side env only — never a NEXT_PUBLIC_ variable.
+function getServiceClient(): SupabaseClient {
+  if (!serviceClient) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) {
+      throw new Error("SUPABASE_SERVICE_ROLE_KEY must be set (see README)");
+    }
+    serviceClient = createClient(url, key, { auth: { persistSession: false } });
+  }
+  return serviceClient;
 }
 
 export type RsvpPicks = { id: string; slot: number }[];
 
+// consent is not an input: the route enforces the checkbox, and
+// submit_rsvp() stores consent_given = true unconditionally (0007).
 export type RsvpInput = {
   nickname: string;
-  consent: boolean;
   groupSize: number;
   vibe: VibeId | null;
   picks: RsvpPicks | null;
 };
 
-// 'closed' = the DB insert policy refused (registration closed or capacity
-// reached); 'db_error' = transport/server failure. Validation happens in
-// /api/rsvp before this is called. No .select(): anon has no SELECT on
-// rsvps by design (0004), and return=representation would need it.
-export type RsvpReject = "closed" | "db_error";
+// 'closed' = registration toggle off; 'full' = people-based capacity
+// reached; 'invalid' = DB-side validation disagreement (should be
+// unreachable, the route validates first); 'db_error' = transport failure.
+export type RsvpReject = "closed" | "full" | "invalid" | "db_error";
 
 export async function rsvp(input: RsvpInput): Promise<{ ok: true } | { ok: false; reason: RsvpReject }> {
-  const { error } = await getClient().from("rsvps").insert({
-    nickname: input.nickname,
-    consent_given: input.consent,
-    group_size: input.groupSize,
-    vibe: input.vibe,
-    picks: input.picks,
+  const { data, error } = await getServiceClient().rpc("submit_rsvp", {
+    p_nickname: input.nickname,
+    p_group_size: input.groupSize,
+    p_vibe: input.vibe,
+    p_picks: input.picks,
   });
   if (error) {
-    // 42501 insufficient_privilege: RLS policy denial. 23514: capacity CHECK.
-    return { ok: false, reason: error.code === "42501" || error.code === "23514" ? "closed" : "db_error" };
+    console.error("[rsvp] submit_rsvp failed:", error.code, error.message);
+    return { ok: false, reason: "db_error" };
   }
-  return { ok: true };
+  const result = data as string | null;
+  if (result === "ok") return { ok: true };
+  if (result === "closed" || result === "full" || result === "invalid") {
+    return { ok: false, reason: result };
+  }
+  console.error("[rsvp] unexpected submit_rsvp result:", result);
+  return { ok: false, reason: "db_error" };
 }
 
-// Live sign-up count. Returns null when the organiser hides it
-// (event_config.live_count_visible = false) or on failure — the landing
-// page renders nothing in that case.
+// Live sign-up count (people, not rows). Returns null when the organiser
+// hides it (event_config.live_count_visible = false) or on failure — the
+// landing page renders nothing in that case.
 export async function rsvpCount(): Promise<number | null> {
   try {
-    const { data, error } = await getClient().rpc("rsvp_live_count", undefined);
+    const { data, error } = await getAnonClient().rpc("rsvp_live_count", undefined);
     if (error || data === null) return null;
     return data as number;
   } catch {

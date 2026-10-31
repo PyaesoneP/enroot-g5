@@ -21,8 +21,12 @@ if (error) {
   process.exit(1);
 }
 
+// Formula-injection guard: a nickname like =HYPERLINK(...) executes when
+// the CSV is opened in a spreadsheet. Strip control characters and prefix
+// cells that start with a formula trigger.
 const esc = (v) => {
-  const s = v === null || v === undefined ? "" : String(v);
+  let s = v === null || v === undefined ? "" : String(v).replace(/[\u0000-\u001f\u007f]/g, " ");
+  if (/^[=+\-@]/.test(s) || s.startsWith("\t")) s = "'" + s;
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 const rows = [["nickname", "group_size", "vibe", "picks", "created_at"]];

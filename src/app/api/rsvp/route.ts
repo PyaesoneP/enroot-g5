@@ -2,16 +2,20 @@ import { NextResponse } from "next/server";
 import type { VibeId } from "@/lib/content";
 import { parsePicks, vibeOf } from "@/activities/charm-builder/picks";
 import { rsvp } from "@/lib/db";
-import { rateLimit } from "@/lib/rate-limit";
+import { commitSignup, rateLimit } from "@/lib/rate-limit";
 
 // Issue #15: sign-up rides the bracelet builder. Everything is validated
 // server-side; the vibe is recomputed from the picks here and never taken
 // from the client. No email, phone or student ID is collected (PDPA).
-const MAX_BODY = 4 * 1024;
+const MAX_BODY_BYTES = 4 * 1024;
 
+// x-forwarded-for is the only client-IP source on Vercel. When it is
+// absent, bucket by user agent instead of one shared "unknown" bucket.
 const clientIp = (req: Request): string => {
   const fwd = req.headers.get("x-forwarded-for");
-  return (fwd?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown") ?? "unknown";
+  const ip = fwd?.split(",")[0]?.trim();
+  if (ip) return ip;
+  return `ua:${req.headers.get("user-agent") ?? "none"}`.slice(0, 128);
 };
 
 export async function POST(req: Request) {
@@ -25,9 +29,11 @@ export async function POST(req: Request) {
 
   let body: unknown;
   try {
-    const text = await req.text();
-    if (text.length > MAX_BODY) return NextResponse.json({ error: "Request too large." }, { status: 413 });
-    body = JSON.parse(text);
+    const raw = await req.arrayBuffer();
+    if (raw.byteLength > MAX_BODY_BYTES) {
+      return NextResponse.json({ error: "Request too large." }, { status: 413 });
+    }
+    body = JSON.parse(new TextDecoder().decode(raw));
   } catch {
     return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
   }
@@ -36,8 +42,8 @@ export async function POST(req: Request) {
   }
   const b = body as Record<string, unknown>;
 
-  // Nickname optional: 1..40 chars, or empty -> "anonymous" (the DB CHECK
-  // enforces length; strip control characters first).
+  // Nickname optional: 1..40 chars, or empty -> "anonymous" (the DB
+  // function re-checks length; strip control characters first).
   const rawName = typeof b.nickname === "string" ? b.nickname.replace(/[\u0000-\u001f\u007f]/g, "").trim() : "";
   if (rawName.length > 40) {
     return NextResponse.json({ error: "Nickname is at most 40 characters." }, { status: 400 });
@@ -49,8 +55,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Group size is between 1 and 5." }, { status: 400 });
   }
 
-  const consent = b.consent === true;
-  if (!consent) {
+  // Consent must be ticked; submit_rsvp() stores consent_given = true
+  // unconditionally, so a stored row always carries consent.
+  if (b.consent !== true) {
     return NextResponse.json({ error: "Consent is required to sign up." }, { status: 400 });
   }
 
@@ -60,23 +67,26 @@ export async function POST(req: Request) {
   const picks = typeof b.picks === "string" ? parsePicks(b.picks) : null;
   const vibe = vibeOf(picks ?? []);
 
-  let result;
-  try {
-    result = await rsvp({
-      nickname,
-      consent,
-      groupSize,
-      vibe: vibe ? (vibe.id as VibeId) : null,
-      picks,
-    });
-  } catch {
-    return NextResponse.json({ error: "Could not save your sign-up. Try again." }, { status: 502 });
-  }
+  const result = await rsvp({
+    nickname,
+    groupSize,
+    vibe: vibe ? (vibe.id as VibeId) : null,
+    picks,
+  });
   if (!result.ok) {
-    if (result.reason === "closed") {
-      return NextResponse.json({ error: "Sign-ups are closed for now." }, { status: 403 });
+    switch (result.reason) {
+      case "closed":
+        return NextResponse.json({ error: "Sign-ups are closed for now." }, { status: 403 });
+      case "full":
+        return NextResponse.json({ error: "All spots are taken. See you at the door!" }, { status: 403 });
+      case "invalid":
+        // Unreachable: the route validates first. Log loudly if it fires.
+        console.error("[rsvp] DB rejected a route-validated sign-up as invalid");
+        return NextResponse.json({ error: "Could not save your sign-up. Try again." }, { status: 400 });
+      case "db_error":
+        return NextResponse.json({ error: "Could not save your sign-up. Try again." }, { status: 502 });
     }
-    return NextResponse.json({ error: "Could not save your sign-up. Try again." }, { status: 502 });
   }
+  commitSignup(clientIp(req));
   return NextResponse.json({ ok: true, vibe: vibe?.id ?? null });
 }

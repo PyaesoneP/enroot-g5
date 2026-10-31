@@ -16,8 +16,19 @@ export function SignupForm({ picks }: { picks: Picks }) {
   const [status, setStatus] = useState<Status>("idle");
   const [message, setMessage] = useState<string | null>(null);
   const [vibe, setVibe] = useState<string | null>(null);
+  // The bracelet as it was when the sign-up was stored. Editing the
+  // bracelet afterwards re-shows the form, so the stale "done" panel can
+  // never point at a table the saved row no longer matches (finding 9).
+  const [submittedPicks, setSubmittedPicks] = useState<string | null>(null);
 
-  const vibeNow = vibeOf(picks);
+  const picksKey = serializePicks(picks);
+  if (status === "done" && submittedPicks !== picksKey) {
+    setStatus("idle");
+    setVibe(null);
+  }
+
+  const complete = picks.length === charms.pickCount;
+  const vibeNow = complete ? vibeOf(picks) : null;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -43,6 +54,7 @@ export function SignupForm({ picks }: { picks: Picks }) {
       }
       setStatus("done");
       setVibe(data.vibe ?? null);
+      setSubmittedPicks(picksKey);
     } catch {
       setStatus("error");
       setMessage("Could not reach the site. Check your connection and try again.");
@@ -55,7 +67,7 @@ export function SignupForm({ picks }: { picks: Picks }) {
         <p className="font-display text-2xl font-semibold [font-variation-settings:'SOFT'_100]">
           You&apos;re on the list
         </p>
-        {vibe && <p className="mt-1 text-sm">{charmsVibeLine(vibe)}</p>}
+        {vibe && <p className="mt-1 text-sm">{charms.vibeTable.replace("{vibe}", vibeLabel(vibe))}</p>}
         <p className="mt-2 text-sm text-muted">
           See you {event.dateLabel} at {event.venue}. Walk-ins are welcome too.
         </p>
@@ -96,7 +108,7 @@ export function SignupForm({ picks }: { picks: Picks }) {
       </label>
       {vibeNow && (
         <p className="text-xs text-muted">
-          Your bracelet ({vibeNow.label}) goes with the sign-up{picks.length < 4 ? " as it stands" : ""}.
+          Your full bracelet is {vibeNow.label} — it goes with the sign-up.
         </p>
       )}
       <label className="flex items-start gap-2 text-xs">
@@ -108,8 +120,8 @@ export function SignupForm({ picks }: { picks: Picks }) {
           required
         />
         <span>
-          We keep your nickname and vibe only to plan tables and charms. Deleted after the event
-          (by 19 Dec).
+          We keep your nickname, group size, vibe, and bracelet charms (if the bracelet is complete)
+          only to plan tables and charm stock. Deleted after the event (by 19 Dec).
         </span>
       </label>
       {message && (
@@ -128,7 +140,6 @@ export function SignupForm({ picks }: { picks: Picks }) {
   );
 }
 
-function charmsVibeLine(vibeId: string): string {
-  const vibe = charms.vibes.find((v) => v.id === vibeId);
-  return vibe ? charms.vibeTable.replace("{vibe}", vibe.label) : "";
+function vibeLabel(vibeId: string): string {
+  return charms.vibes.find((v) => v.id === vibeId)?.label ?? vibeId;
 }
