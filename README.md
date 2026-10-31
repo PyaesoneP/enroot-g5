@@ -4,6 +4,7 @@ Event site for **EnROOT Group 5** (15th ROOT, SUTD), part of the 15th ROOT
 EnROOT trial cohort.
 
 **Live site:** https://enroot-g5.vercel.app/
+(poster QR: `public/live-qr.png`, served at `/live-qr.png`)
 
 ## The event
 
