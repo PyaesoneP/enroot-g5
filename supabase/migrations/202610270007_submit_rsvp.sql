@@ -10,8 +10,9 @@
 -- Fix: revoke anon/authenticated INSERT entirely. Sign-ups go through
 -- submit_rsvp(), a SECURITY DEFINER function executable ONLY by
 -- service_role (called by the Next server via src/lib/db.ts). The service
--- role bypasses RLS, so the function re-checks consent, bounds, the vibe
--- whitelist, picks shape, and people-based capacity itself.
+-- role bypasses RLS, so the function checks bounds, the vibe
+-- whitelist, picks shape, and people-based capacity itself; consent is
+-- stored as true unconditionally (0008 CHECK + this function).
 
 -- 1. No public writes to rsvps at all. Table-level revoke covers the
 --    0006 column grants too; nothing is re-granted to anon/authenticated.
@@ -61,8 +62,9 @@ as $$
 $$;
 
 -- 3. The only sign-up door. Returns 'ok', or a rejection code the server
---    maps to a user message. The 0004 insert policy stays as
---    defence-in-depth for service-role inserts.
+--    maps to a user message. (0008 superseded this body with fail-closed
+--    config handling, a spots_left answer, and dropped the now-dead 0004
+--    anon insert policy.)
 create or replace function public.submit_rsvp(
   p_nickname   text,
   p_group_size integer,
@@ -122,9 +124,11 @@ revoke all on function public.submit_rsvp(text, integer, text, jsonb)
   from anon, authenticated, public;
 grant execute on function public.submit_rsvp(text, integer, text, jsonb) to service_role;
 
--- 4. The Next server calls rsvp_live_count() with the service-role client
---    too (same DB client as submit_rsvp); grant it what it needs. Rows
---    SELECT the service role already has via the 0002 purge grants.
+-- 4. rsvp_live_count() runs with the ANON client in db.ts (the grant to
+--    anon/authenticated from 0002 is what makes that work); the
+--    service_role execute grant here covers organiser scripts and any
+--    future service-side count reads. Rows SELECT the service role
+--    already has via the grants below.
 grant execute on function public.rsvp_live_count() to service_role;
 
 -- 5. Codify service_role's rsvps privileges instead of relying on

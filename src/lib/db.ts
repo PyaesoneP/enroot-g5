@@ -51,12 +51,18 @@ export type RsvpInput = {
   picks: RsvpPicks | null;
 };
 
-// 'closed' = registration toggle off; 'full' = people-based capacity
-// reached; 'invalid' = DB-side validation disagreement (should be
-// unreachable, the route validates first); 'db_error' = transport failure.
-export type RsvpReject = "closed" | "full" | "invalid" | "db_error";
+// 'closed' = registration toggle off (or config missing — fails closed);
+// 'full' = no spots left; 'short' = spots exist but this group does not
+// fit (spotsLeft tells the route how many remain); 'invalid' = DB-side
+// validation disagreement (should be unreachable, the route validates
+// first); 'db_error' = transport failure.
+export type RsvpReject = "closed" | "full" | "short" | "invalid" | "db_error";
 
-export async function rsvp(input: RsvpInput): Promise<{ ok: true } | { ok: false; reason: RsvpReject }> {
+export type RsvpResult =
+  | { ok: true }
+  | { ok: false; reason: RsvpReject; spotsLeft?: number };
+
+export async function rsvp(input: RsvpInput): Promise<RsvpResult> {
   const { data, error } = await getServiceClient().rpc("submit_rsvp", {
     p_nickname: input.nickname,
     p_group_size: input.groupSize,
@@ -67,12 +73,15 @@ export async function rsvp(input: RsvpInput): Promise<{ ok: true } | { ok: false
     console.error("[rsvp] submit_rsvp failed:", error.code, error.message);
     return { ok: false, reason: "db_error" };
   }
-  const result = data as string | null;
-  if (result === "ok") return { ok: true };
-  if (result === "closed" || result === "full" || result === "invalid") {
-    return { ok: false, reason: result };
+  // TABLE-returning RPCs come back as a one-row ARRAY from supabase-js.
+  const rows = data as { status: string; spots_left: number | null }[] | null;
+  const row = Array.isArray(rows) ? rows[0] : null;
+  const status = row?.status;
+  if (status === "ok") return { ok: true };
+  if (status === "closed" || status === "full" || status === "short" || status === "invalid") {
+    return { ok: false, reason: status, spotsLeft: row?.spots_left ?? undefined };
   }
-  console.error("[rsvp] unexpected submit_rsvp result:", result);
+  console.error("[rsvp] unexpected submit_rsvp result:", data);
   return { ok: false, reason: "db_error" };
 }
 

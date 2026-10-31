@@ -14,6 +14,7 @@ begin;
 -- unknown — the if-raise would be skipped. Normalize both toggles; the
 -- final rollback leaves no residue.
 update public.event_config set live_count_visible = true, registration_open = true where id = true;
+select set_config('t.base', public.rsvp_live_count()::text, false);
 set role anon;
 
 -- T1 (0007): ANY anon insert into rsvps must fail — consent flag or not.
@@ -86,9 +87,8 @@ reset role;
 delete from public.rsvps where nickname in ('t4-a', 't4-b');
 set role anon;
 
--- T5: nickname length guard is enforced in submit_rsvp (service suite);
--- here we only prove anon has no path to bypass it (covered by T1).
-do $$ begin raise notice 'T5 PASS: nickname guard moved to submit_rsvp (see service suite)'; end $$;
+-- (T5, nickname length, lives in the service suite as S2: anon has no
+-- path to the nickname guard since 0007 revoked every write door.)
 
 -- T6: guest_tokens invisible + unwritable to anon
 do $$
@@ -193,10 +193,21 @@ reset role;
 update public.event_config set live_count_visible = true where id = true;
 set role anon;
 
-do $$ begin raise notice 'T-post PASS: anon suite left no rsvp rows (service suite checks deltas)'; end $$;
+-- Post-state: the anon suite stores nothing (T4's rows were deleted), so
+-- the people count must be exactly the baseline sampled at txn start.
+-- Round-2 review: the old T5/T-post were no-ops that printed PASS.
+do $$
+declare base int; now_ int;
+begin
+  base := current_setting('t.base')::int;
+  select public.rsvp_live_count() into now_;
+  if now_ is null or now_ <> base then
+    raise exception 'post-state wrong: base=%, now=%, expected net-zero', base, now_;
+  end if;
+end $$;
 
 -- Success row for channels that drop NOTICEs (supabase db query):
 -- a failure raises first and this row is never returned.
-select 'ALL ANON TESTS PASS (T1-T10; privilege denials, live-safe)' as result;
+select 'ALL ANON TESTS PASS (T1-T10 + net-zero post-state; live-safe)' as result;
 
 rollback;  -- suite leaves no residue: re-runnable on any schema

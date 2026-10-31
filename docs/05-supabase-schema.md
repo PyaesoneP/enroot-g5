@@ -44,8 +44,9 @@
     the revoke names the roles explicitly). The function validates
     bounds, the vibe whitelist, picks shape, and people-based capacity
     (`sum(group_size)` fits the cap, `event_config` locked `for
-    update`), and stores `consent_given = true` unconditionally; a
-    table CHECK enforces consent on every stored row. The Next server
+    update`), returns `(status, spots_left)` (0008), and stores
+    `consent_given = true` unconditionally; a table CHECK enforces
+    consent on every stored row. The Next server
     calls it with the service-role key from `src/lib/db.ts` — clients
     cannot post straight to PostgREST to skip `/api/rsvp`'s rate limit
     or validation.
@@ -55,9 +56,13 @@
     steal its token, delete the pick).
 - Registration gate is enforced **in the database**: `submit_rsvp()`
   checks `registration_open` and `sum(group_size) + incoming <= capacity`
-  under a `FOR UPDATE` lock on the singleton, returning `closed`/`full`
-  instead of storing (0007 counts **people**, not rows; the 0004 insert
-  policy remains as defence-in-depth for service-role writes).
+  under a `FOR UPDATE` lock on the singleton, returning
+  `closed`/`full`/`short (spots_left)` instead of storing (0007 counts
+  **people**, not rows; 0008 fails closed if the config row is missing
+  and drops the old anon insert policy + `rsvp_insert_allowed()`, which
+  guarded a write path 0007 had revoked — service_role bypasses RLS, so
+  the policy never applied to the definer insert). Consent is enforced
+  by the `rsvp_consent_true` CHECK, not a policy.
 - `rsvp_live_count()` counts people (`sum(group_size)`), returns NULL
   when `live_count_visible` is off; returns only the number, never rows.
 - `charm_picks.picks` CHECK: jsonb array, 1..**4** items (= `pickCount`

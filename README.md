@@ -86,6 +86,24 @@ npm run dev
 
 Open http://localhost:3000.
 
+## Environment variables
+
+Create `.env.local` (gitignored) in the project root with:
+
+| Variable | Used by | Notes |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | client + server | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | client reads + `rsvp_live_count()` | anon key, RLS-restricted |
+| `SUPABASE_SERVICE_ROLE_KEY` | server only (`/api/rsvp` via `src/lib/db.ts`, export script) | NEVER a `NEXT_PUBLIC_` variable; sign-ups fail without it |
+
+On Vercel the same three are set for production/preview/development.
+
+Known limitation (accepted for the event): duplicate sign-ups are not
+blocked — reloading and submitting again adds another row. The per-IP
+rate limit bounds it, and walk-ins mean a double row skews planning,
+not entry. Editing the bracelet after signing up does not update the
+stored row (the panel says the sign-up stands).
+
 ## Deploy
 
 Production: https://enroot-g5.vercel.app/ (Vercel). Pushes to `main` deploy

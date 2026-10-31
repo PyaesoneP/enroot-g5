@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { VibeId } from "@/lib/content";
 import { parsePicks, vibeOf } from "@/activities/charm-builder/picks";
 import { rsvp } from "@/lib/db";
-import { commitSignup, rateLimit } from "@/lib/rate-limit";
+import { releaseSignup, reserveSignup } from "@/lib/rate-limit";
 
 // Issue #15: sign-up rides the bracelet builder. Everything is validated
 // server-side; the vibe is recomputed from the picks here and never taken
@@ -19,14 +19,6 @@ const clientIp = (req: Request): string => {
 };
 
 export async function POST(req: Request) {
-  const limit = rateLimit(clientIp(req));
-  if (!limit.allowed) {
-    return NextResponse.json(
-      { error: "Too many sign-ups from here. Try again shortly." },
-      { status: 429, headers: { "Retry-After": String(limit.retryAfterSec) } },
-    );
-  }
-
   let body: unknown;
   try {
     const raw = await req.arrayBuffer();
@@ -67,18 +59,48 @@ export async function POST(req: Request) {
   const picks = typeof b.picks === "string" ? parsePicks(b.picks) : null;
   const vibe = vibeOf(picks ?? []);
 
-  const result = await rsvp({
-    nickname,
-    groupSize,
-    vibe: vibe ? (vibe.id as VibeId) : null,
-    picks,
-  });
+  // The window slot is reserved BEFORE the database call so parallel
+  // requests cannot all pass the check, and released when the row is not
+  // stored (failed validation, closed, full) — round-2 finding 1.
+  const ip = clientIp(req);
+  const limit = reserveSignup(ip);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: "Too many sign-ups from here. Try again shortly." },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfterSec) } },
+    );
+  }
+
+  let result;
+  try {
+    result = await rsvp({
+      nickname,
+      groupSize,
+      vibe: vibe ? (vibe.id as VibeId) : null,
+      picks,
+    });
+  } catch (e) {
+    releaseSignup(ip);
+    // Missing SUPABASE_SERVICE_ROLE_KEY and transport failures both land
+    // here: answer with JSON, never the framework's HTML 500.
+    console.error("[rsvp] submit failed:", e instanceof Error ? e.message : e);
+    return NextResponse.json({ error: "Could not save your sign-up. Try again." }, { status: 502 });
+  }
+
   if (!result.ok) {
+    releaseSignup(ip);
     switch (result.reason) {
       case "closed":
         return NextResponse.json({ error: "Sign-ups are closed for now." }, { status: 403 });
       case "full":
         return NextResponse.json({ error: "All spots are taken. See you at the door!" }, { status: 403 });
+      case "short":
+        return NextResponse.json(
+          {
+            error: `Only ${result.spotsLeft ?? "a few"} ${result.spotsLeft === 1 ? "spot is" : "spots are"} left — try a smaller group, or come as a walk-in.`,
+          },
+          { status: 403 },
+        );
       case "invalid":
         // Unreachable: the route validates first. Log loudly if it fires.
         console.error("[rsvp] DB rejected a route-validated sign-up as invalid");
@@ -87,6 +109,5 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Could not save your sign-up. Try again." }, { status: 502 });
     }
   }
-  commitSignup(clientIp(req));
   return NextResponse.json({ ok: true, vibe: vibe?.id ?? null });
 }

@@ -17,16 +17,12 @@ export function SignupForm({ picks }: { picks: Picks }) {
   const [message, setMessage] = useState<string | null>(null);
   const [vibe, setVibe] = useState<string | null>(null);
   // The bracelet as it was when the sign-up was stored. Editing the
-  // bracelet afterwards re-shows the form, so the stale "done" panel can
-  // never point at a table the saved row no longer matches (finding 9).
+  // bracelet afterwards does NOT re-open the form (round-2 finding 2):
+  // a second submit would add a second row and double-count the group.
+  // The panel says the original sign-up stands.
   const [submittedPicks, setSubmittedPicks] = useState<string | null>(null);
 
   const picksKey = serializePicks(picks);
-  if (status === "done" && submittedPicks !== picksKey) {
-    setStatus("idle");
-    setVibe(null);
-  }
-
   const complete = picks.length === charms.pickCount;
   const vibeNow = complete ? vibeOf(picks) : null;
 
@@ -43,7 +39,10 @@ export function SignupForm({ picks }: { picks: Picks }) {
           nickname,
           groupSize,
           consent,
-          picks: picks.length > 0 ? serializePicks(picks) : null,
+          // Only a COMPLETE bracelet is stored: partial picks have no
+          // vibe and the consent text promises charms only when complete
+          // (round-2 finding 3).
+          picks: complete ? serializePicks(picks) : null,
         }),
       });
       const data = (await res.json()) as { ok?: boolean; vibe?: string | null; error?: string };
@@ -62,12 +61,19 @@ export function SignupForm({ picks }: { picks: Picks }) {
   }
 
   if (status === "done") {
+    const changed = submittedPicks !== picksKey;
     return (
       <div className="rounded-2xl bg-blush p-4 text-center" role="status">
         <p className="font-display text-2xl font-semibold [font-variation-settings:'SOFT'_100]">
           You&apos;re on the list
         </p>
         {vibe && <p className="mt-1 text-sm">{charms.vibeTable.replace("{vibe}", vibeLabel(vibe))}</p>}
+        {changed && (
+          <p className="mt-2 text-xs text-muted">
+            You edited the bracelet since signing up — your sign-up stands as it was. More charms
+            at the table on the day.
+          </p>
+        )}
         <p className="mt-2 text-sm text-muted">
           See you {event.dateLabel} at {event.venue}. Walk-ins are welcome too.
         </p>
