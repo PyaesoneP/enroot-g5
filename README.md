@@ -59,7 +59,7 @@ above.
 - Tailwind CSS 4
 - Supabase (Postgres + RLS + anonymous Auth) behind a typed data layer
 - Deployed on Vercel (static site + serverless route handlers)
-- Telegram bot (Python), shared store, Vercel webhook + cron (ADR-010)
+- Telegram bot (TypeScript route handlers), shared store, Vercel webhook + cron (ADR-010)
 
 ## Process
 
@@ -74,7 +74,7 @@ above.
    (Italian charm bracelets) in the EPF draft. Copy, SRS and issues re-scoped;
    no code had to change (ADR-005).
 6. **Next:** build the real event site (landing, activity page, quiz, RSVP),
-  stand up Supabase, deploy. Stretch: wall, gallery, and the Python Telegram
+  stand up Supabase, deploy. Stretch: wall, gallery, and the Telegram
   bot (live count, charm of the day, event-day nudges; ADR-010).
 
 ## Run locally
@@ -98,11 +98,53 @@ Create `.env.local` (gitignored) in the project root with:
 
 On Vercel the same three are set for production/preview/development.
 
+Telegram bot (server only, production; see below):
+
+| Variable | Notes |
+|---|---|
+| `TELEGRAM_BOT_TOKEN` | from BotFather |
+| `TELEGRAM_CHANNEL_ID` | `@channelhandle` or numeric `-100...` id of the event channel |
+| `TELEGRAM_WEBHOOK_SECRET` | random string; passed to `setWebhook` as `secret_token` |
+| `CRON_SECRET` | random string; Vercel sends it to the cron routes as `Authorization: Bearer` |
+
 Known limitation (accepted for the event): duplicate sign-ups are not
 blocked — reloading and submitting again adds another row. The per-IP
 rate limit bounds it, and walk-ins mean a double row skews planning,
 not entry. Editing the bracelet after signing up does not update the
 stored row (the panel says the sign-up stands).
+
+## Telegram bot
+
+Features (#18): `/count` (live sign-up count), charm of the day (09:00 SGT,
+1 to 18 Nov), and event-day nudges (19 Nov at 09:00 and 16:00 SGT). The crons
+are in `vercel.json` and the copy is in `content/bot.json`. Hobby crons fire
+somewhere within the scheduled hour.
+
+One-time setup:
+
+1. In Telegram, ask @BotFather to create a bot with `/newbot`, and keep the token.
+2. Create a public channel for the event, then add the bot as an admin that can post messages.
+3. Set the four variables above in Vercel (Production), then redeploy.
+4. Register the webhook:
+   ```bash
+   curl "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/setWebhook" \
+     -d url=https://enroot-g5.vercel.app/api/telegram/webhook \
+     -d secret_token=$TELEGRAM_WEBHOOK_SECRET \
+     -d 'allowed_updates=["message"]'
+   curl "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/setMyCommands" \
+     -H 'content-type: application/json' \
+     -d '{"commands":[{"command":"count","description":"How many people are coming"}]}'
+   ```
+
+To preview a post without sending it, run:
+
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" \
+  "https://enroot-g5.vercel.app/api/telegram/morning?date=2026-11-05&dryRun=1"
+```
+
+Drop `dryRun=1` to really post (the date override still applies).
+After adding or replacing a charm, re-run `node scripts/charms-to-photo.mjs`.
 
 ## Deploy
 

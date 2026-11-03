@@ -85,15 +85,27 @@ export async function rsvp(input: RsvpInput): Promise<RsvpResult> {
   return { ok: false, reason: "db_error" };
 }
 
-// Live sign-up count (people, not rows). Returns null when the organiser
-// hides it (event_config.live_count_visible = false) or on failure — the
-// landing page renders nothing in that case.
-export async function rsvpCount(): Promise<number | null> {
+// Live sign-up count (people, not rows). rsvp_live_count() returns NULL
+// when the organiser hides it (event_config.live_count_visible = false), so
+// 'hidden' and 'error' are told apart here; the bot words them differently.
+export type RsvpCountResult =
+  | { status: "ok"; count: number }
+  | { status: "hidden" }
+  | { status: "error" };
+
+export async function rsvpCountStatus(): Promise<RsvpCountResult> {
   try {
     const { data, error } = await getAnonClient().rpc("rsvp_live_count", undefined);
-    if (error || data === null) return null;
-    return data as number;
+    if (error) return { status: "error" };
+    if (data === null) return { status: "hidden" };
+    return { status: "ok", count: data as number };
   } catch {
-    return null;
+    return { status: "error" };
   }
+}
+
+// Landing page: null (hidden or failed) renders nothing.
+export async function rsvpCount(): Promise<number | null> {
+  const r = await rsvpCountStatus();
+  return r.status === "ok" ? r.count : null;
 }

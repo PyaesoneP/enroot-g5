@@ -42,7 +42,7 @@ flowchart TB
     C4E["Auth (anonymous tokens) + RLS policies + Storage"]
   end
 
-  C5["C5 - Telegram Bot (Python)<br/>pluggable feature: trivia / daily post / rsvp mirror"]
+  C5["C5 - Telegram Bot (TS route handlers)<br/>/count, charm of the day, event-day nudges"]
 
   C6[/"C6 - Content (content/*.json, *.md)<br/>read at build time"/]
 
@@ -151,8 +151,8 @@ submitScore(token, score)        topScores(n)
 
 - The **only** code in the system that imports a Supabase client. C1, C2, and C5
  all depend on this, and never on Supabase directly. This is what makes
- "swap the store" a one-module change (ADR-004) and what lets C5 (a Python
- bot) and C1 (a TS site) share one store without duplicating query logic
+ "swap the store" a one-module change (ADR-004) and what lets C5 (the bot)
+ and C1 (the site) share one store without duplicating query logic
  (ADR-006).
 - Enforces the *agreement* between consumers: table shapes live here, in one
  place.

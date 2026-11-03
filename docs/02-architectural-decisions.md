@@ -371,7 +371,7 @@ it may be genuinely offensive.
 **Status:** Accepted (2026-10-20; was Pending until the bot's features were
 fixed in #18)
 
-**Context.** The bot (ADR-006) is a Python process that talks to the shared
+**Context.** The bot (ADR-006) is a process that talks to the shared
 store. It needs **a place to run**. The team cannot use the Oracle free tier,
 and the choice of runtime depended on the bot's behavior: a request/response
 or scheduled bot fits serverless, a long-polling loop does not. The behavior
@@ -407,6 +407,23 @@ not store Telegram user or chat IDs.
 - Function cold starts add a second or so to the first `/count` reply.
 - Telegram photo posts may not accept the site's WebP charm images; PNG
  copies may be needed (to check when implementing, #19).
+
+**Implementation note (2026-11-03, #19).**
+
+- The bot is written in **TypeScript**, not Python: route handlers at
+ `src/app/api/telegram/{webhook,morning,afternoon}`. Running inside the
+ Next.js project lets it reuse the data layer (`rsvpCount()` in
+ `src/lib/db.ts`, F-11) and the typed content loaders instead of a second
+ copy of both. Copy lives in `content/bot.json` (ADR-003).
+- `/count` replies inline in the webhook response, so the bot makes no
+ outbound call and never stores a chat ID. The webhook checks Telegram's
+ `secret_token` header. The cron routes check `CRON_SECRET`.
+- Vercel Hobby limits are confirmed: crons run at most daily and fire anywhere
+ within the scheduled hour. The `vercel.json` schedules are `0 1 * * *` (09:00 SGT) and
+ `0 8 * * *` (16:00 SGT).
+- Photos: Telegram re-encodes photos as JPEG, so transparent images go dark.
+ `scripts/charms-to-photo.mjs` writes flattened 512px JPEG copies to
+ `public/charms-photo/`, and the bot posts those.
 
 **Alternatives.**
 

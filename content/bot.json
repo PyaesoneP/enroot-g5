@@ -1,0 +1,18 @@
+{
+  "siteUrl": "https://enroot-g5.vercel.app",
+  "window": { "start": "2026-11-01", "end": "2026-11-18" },
+  "startReply": "Hi! I'm the Charm & Chatter bot (EnROOT Group 5). Send /count to see how many people are coming. Thursday 19 Nov, 7pm, Root Cove.",
+  "countReply": "{count} people are coming to Charm & Chatter so far. Thursday 19 Nov, 7pm, Root Cove. Walk-ins welcome too.",
+  "countHidden": "The sign-up count is private for now. Charm & Chatter is on Thursday 19 Nov, 7pm, Root Cove. Walk-ins welcome.",
+  "countUnavailable": "Can't reach the sign-up list right now. Try again in a minute.",
+  "charmOfDay": "Charm of the day: {label}\n{line}\n{days} to Charm & Chatter (19 Nov, 7pm, Root Cove).\nPut it on your bracelet: {link}",
+  "friendshipLines": [
+    "Who would you give this one to?",
+    "Tag the friend this charm reminds you of.",
+    "One charm, one story. What's yours?",
+    "Best friends don't have to match. Their bracelets might, though.",
+    "Bring someone you haven't talked to in a while."
+  ],
+  "eventMorning": "It's today! Charm & Chatter, tonight 7pm at Root Cove. Pick your four charms before you come: {siteUrl}/make",
+  "eventAfternoon": "Charm & Chatter starts at 7pm at Root Cove. Come with a friend or come alone and we'll pair you up. Walk-ins welcome."
+}
