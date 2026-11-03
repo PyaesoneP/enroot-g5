@@ -1,6 +1,7 @@
 {
   "crons": [
     { "path": "/api/telegram/morning", "schedule": "0 1 * * *" },
-    { "path": "/api/telegram/afternoon", "schedule": "0 8 * * *" }
+    { "path": "/api/telegram/afternoon", "schedule": "0 8 * * *" },
+    { "path": "/api/cron/purge-rate-limits", "schedule": "0 19 * * *" }
   ]
 }

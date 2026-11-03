@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { bot } from "@/lib/content";
 import { commandOf, fill } from "@/lib/bot";
 import { rsvpCountStatus } from "@/lib/db";
-import { secretMatches } from "@/lib/telegram";
+import { secretMatches } from "@/lib/secrets";
 
 // Telegram webhook (ADR-010). Registered with a secret_token, which
 // Telegram echoes in a header on every update. Replies go back inline in

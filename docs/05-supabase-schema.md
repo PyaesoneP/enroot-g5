@@ -14,7 +14,7 @@
 | `charm_picks` | saved bracelet builds (jsonb, shape-bound) under an opaque `session_id` | no (ADR-008 anonymous identity) | anon read (`id`,`picks`,`created_at` — **not** `session_id`) + insert; owner-scoped delete via `delete_pick()` |
 | `guest_tokens` | event-day check-in codes, **hashed** | no | service-role only; anon/authenticated fully revoked |
 | `event_config` | singleton: capacity, live-count toggle, registration toggle | no | anon read; service-role write |
-| `rate_limits` | sign-up rate-limit counters: opaque key, fixed window start, hit count (0009, #11) | no: keys are HMACs, never a raw IP or guest id; rows live at most a day | **no grants** to anon/authenticated; only via `rate_limit_hit()` / `rate_limit_release()`, service_role only |
+| `rate_limits` | sign-up rate-limit counters: opaque key, fixed window start, hit count (0009, #11) | no: keys are HMACs, never a raw IP or guest id; rows older than a day are purged daily | **no grants** to anon/authenticated; only via `rate_limit_hit()` / `rate_limit_release()`, service_role only |
 
 ## PDPA posture (EPF Section E ticked **No**, confirmed 2026-10-27)
 
@@ -129,6 +129,10 @@ count could make a wrongly-accepted insert print PASS), and assert:
 | R5 | a new window resets the count | PASS |
 | R6 | bad arguments (window 0) raise instead of counting | PASS |
 | R7 | a hit on any key clears every window older than a day (0010) | PASS |
+| R8 | `rate_limit_purge()` drops stale windows without traffic and keeps current ones | PASS |
+| R9 | `rate_limit_clear()` resets a key that was pushed past its max | PASS |
+| R4b | anon cannot execute `rate_limit_purge` / `rate_limit_clear` | PASS |
+| orch | `scripts/rate-limit-check.mjs`: reserve/release/fail-open orchestration with a fake store (7 cases) | PASS |
 | R-par | 20 concurrent hits on one key with max 10 → exactly 10 allowed (upsert is atomic) | PASS (local replay) |
 
 REST-level smoke (anon key, live project): `rsvps` read → 401, `rsvps`
@@ -167,8 +171,14 @@ instance). Hits over the cap still count, so a flood stays blocked for its
 window. `rate_limit_release()` gives a hit back when a sign-up is not
 stored, so mistakes and closed/full answers stay free. Keys are
 `ip:`/`guest:` + HMAC-SHA256 (keyed with the service-role key) of the
-value, so no raw IP reaches the store. Each call deletes every row older
-than a day, for any key (0010; 0009 only cleaned the caller's own key). If the limiter is unreachable the route **fails open**
+value, so no raw IP reaches the store. Rows older than a day are
+removed by every `rate_limit_hit()` call, for any key (0010; 0009 only cleaned
+the caller's own key). They're also removed by `rate_limit_purge()`, which a
+daily Vercel cron calls through `/api/cron/purge-rate-limits` (03:00 SGT). The
+cron is what keeps retention true once traffic stops after the event.
+`rate_limit_clear(key)` drops one key entirely; it's for ops and the e2e test,
+because releases alone can't zero a counter that denied hits pushed past its
+max. If the limiter is unreachable the route **fails open**
 (logged); `submit_rsvp()`'s capacity gate stays the hard limit.
 
 ## Open items

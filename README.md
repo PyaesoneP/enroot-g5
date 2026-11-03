@@ -117,7 +117,11 @@ stored row (the panel says the sign-up stands).
 
 - **Guest cookie (#13):** the first page visit gets a random `g5_guest` cookie (`HttpOnly`, 60 days) from `src/proxy.ts`. It isn't an account. It's only used for rate limits, and later for "your own posts" on the wall.
 - **Sign-up limits (#11):** at most 10 per minute per IP and 5 per hour per guest cookie. The counters are shared across all Vercel instances because they live in Postgres (`rate_limits`, migration 0009). Keys are HMACs, so no IP is stored. If the limiter can't be reached, sign-ups are allowed and the failure is logged.
-- **Checks:** run `supabase db query --linked -f supabase/tests/rate_limit_acceptance.sql` against the database. To check the data layer from a script, run `node --no-warnings --env-file=.env.local --conditions=react-server --experimental-strip-types scripts/dal-check.mjs`.
+- **Retention:** counters older than a day are purged daily by the `/api/cron/purge-rate-limits` cron (03:00 SGT, `CRON_SECRET`).
+- **Checks:**
+  - database: `supabase db query --linked -f supabase/tests/rate_limit_acceptance.sql`
+  - limiter logic, no database: `node --no-warnings --conditions=react-server --experimental-strip-types --import ./scripts/ts-alias-hooks.mjs scripts/rate-limit-check.mjs`
+  - data layer from a script: `node --no-warnings --env-file=.env.local --conditions=react-server --experimental-strip-types scripts/dal-check.mjs`
 
 ## Poster QR
 

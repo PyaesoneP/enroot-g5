@@ -124,6 +124,60 @@ begin
   raise notice 'R7 PASS: stale windows of every key are cleared';
 end $$;
 
-select 'ALL RATE-LIMIT TESTS PASS (R1-R7; rolled back, live-safe)' as result;
+-- R8: rate_limit_purge() drops stale windows with no traffic needed and
+-- keeps current ones; rate_limit_clear() zeroes a key that denied hits
+-- pushed past its max (PR #40 review).
+do $$
+declare n int; removed int;
+begin
+  -- The hit first: it would clear a stale row itself (0010).
+  perform * from public.rate_limit_hit('test:r8-live', 60, 10);
+  reset role;
+  insert into public.rate_limits (key, window_start, hits)
+  values ('test:r8-stale', now() - interval '3 days', 2);
+  set role service_role;
+  select public.rate_limit_purge() into removed;
+  reset role;
+  select count(*) into n from public.rate_limits where key in ('test:r8-stale', 'test:r8-live');
+  set role service_role;
+  if removed < 1 or n <> 1 then
+    raise exception 'R8 FAIL: purge removed %, % test rows left (expected only the live one)', removed, n;
+  end if;
+  raise notice 'R8 PASS: purge drops stale windows, keeps current ones';
+end $$;
+
+do $$
+declare r record; removed int; i int;
+begin
+  for i in 1..12 loop
+    perform * from public.rate_limit_hit('test:r9', 86400, 10);
+  end loop;
+  select public.rate_limit_clear('test:r9') into removed;
+  select * into r from public.rate_limit_hit('test:r9', 86400, 1);
+  if removed <> 1 or not r.allowed then
+    raise exception 'R9 FAIL: clear removed %, next hit allowed=%', removed, r.allowed;
+  end if;
+  raise notice 'R9 PASS: clear resets a key pushed past its max';
+end $$;
+
+-- R4b: anon cannot purge or clear either.
+set role anon;
+do $$
+begin
+  begin
+    perform public.rate_limit_purge();
+    raise exception 'R4b FAIL: anon executed rate_limit_purge';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    perform public.rate_limit_clear('test:x');
+    raise exception 'R4b FAIL: anon executed rate_limit_clear';
+  exception when insufficient_privilege then null;
+  end;
+  raise notice 'R4b PASS: anon cannot purge or clear';
+end $$;
+set role service_role;
+
+select 'ALL RATE-LIMIT TESTS PASS (R1-R9; rolled back, live-safe)' as result;
 reset role;
 rollback;

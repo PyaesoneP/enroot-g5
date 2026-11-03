@@ -4,12 +4,11 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { isIsoDate, sgtDate, type Post } from "@/lib/bot";
-import { channelId, secretMatches, sendPost } from "@/lib/telegram";
+import { cronAuthorized } from "@/lib/secrets";
+import { channelId, sendPost } from "@/lib/telegram";
 
 export async function runScheduledPost(req: Request, build: (date: string) => Post | null) {
-  const auth = req.headers.get("authorization");
-  const given = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
-  if (!secretMatches(given, process.env.CRON_SECRET)) {
+  if (!cronAuthorized(req)) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
   const params = new URL(req.url).searchParams;

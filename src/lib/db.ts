@@ -145,3 +145,34 @@ export async function rateLimitRelease(key: string, windowSec: number): Promise<
     console.error("[rate-limit] rate_limit_release threw:", e instanceof Error ? e.message : e);
   }
 }
+
+// Daily purge of windows older than a day (0010; /api/cron/purge-rate-limits).
+// Returns rows removed, or null on failure.
+export async function rateLimitPurge(): Promise<number | null> {
+  try {
+    const { data, error } = await getServiceClient().rpc("rate_limit_purge", undefined);
+    if (error) {
+      console.error("[rate-limit] rate_limit_purge failed:", error.code, error.message);
+      return null;
+    }
+    return data as number;
+  } catch (e) {
+    console.error("[rate-limit] rate_limit_purge threw:", e instanceof Error ? e.message : e);
+    return null;
+  }
+}
+
+// Drops every window of one key (ops / e2e test only). Rows removed, or null.
+export async function rateLimitClear(key: string): Promise<number | null> {
+  try {
+    const { data, error } = await getServiceClient().rpc("rate_limit_clear", { p_key: key });
+    if (error) {
+      console.error("[rate-limit] rate_limit_clear failed:", error.code, error.message);
+      return null;
+    }
+    return data as number;
+  } catch (e) {
+    console.error("[rate-limit] rate_limit_clear threw:", e instanceof Error ? e.message : e);
+    return null;
+  }
+}

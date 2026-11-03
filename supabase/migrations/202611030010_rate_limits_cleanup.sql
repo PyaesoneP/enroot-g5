@@ -45,3 +45,42 @@ end $$;
 -- correct on its own (0007 precedent).
 revoke execute on function public.rate_limit_hit(text, integer, integer) from public, anon, authenticated;
 grant execute on function public.rate_limit_hit(text, integer, integer) to service_role;
+
+-- PR #40 review: cleanup inside rate_limit_hit() only runs while traffic
+-- continues, so after the event the last day's rows would stay. A daily
+-- purge (Vercel cron -> /api/cron/purge-rate-limits) makes "at most a day"
+-- hold with no traffic. Returns the number of rows removed.
+create or replace function public.rate_limit_purge()
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare n integer;
+begin
+  delete from public.rate_limits where window_start < now() - interval '1 day';
+  get diagnostics n = row_count;
+  return n;
+end $$;
+
+-- Drops every window of one key. For ops and the e2e flood test
+-- (scripts/dal-check.mjs clear): releases alone cannot zero a counter
+-- that denied hits pushed past its max.
+create or replace function public.rate_limit_clear(p_key text)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare n integer;
+begin
+  if p_key is null then raise exception 'rate_limit_clear: bad arguments'; end if;
+  delete from public.rate_limits where key = p_key;
+  get diagnostics n = row_count;
+  return n;
+end $$;
+
+revoke execute on function public.rate_limit_purge() from public, anon, authenticated;
+revoke execute on function public.rate_limit_clear(text) from public, anon, authenticated;
+grant execute on function public.rate_limit_purge() to service_role;
+grant execute on function public.rate_limit_clear(text) to service_role;
