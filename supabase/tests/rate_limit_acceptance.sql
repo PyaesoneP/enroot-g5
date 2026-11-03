@@ -108,6 +108,22 @@ begin
   raise notice 'R6 PASS: bad arguments rejected';
 end $$;
 
-select 'ALL RATE-LIMIT TESTS PASS (R1-R6; rolled back, live-safe)' as result;
+-- R7: a hit on ANY key clears every window older than a day (0010).
+do $$
+declare n int;
+begin
+  reset role;
+  insert into public.rate_limits (key, window_start, hits)
+  values ('test:r7-stale', now() - interval '2 days', 3);
+  set role service_role;
+  perform * from public.rate_limit_hit('test:r7-other', 60, 10);
+  reset role;
+  select count(*) into n from public.rate_limits where key = 'test:r7-stale';
+  set role service_role;
+  if n <> 0 then raise exception 'R7 FAIL: stale row of another key survived'; end if;
+  raise notice 'R7 PASS: stale windows of every key are cleared';
+end $$;
+
+select 'ALL RATE-LIMIT TESTS PASS (R1-R7; rolled back, live-safe)' as result;
 reset role;
 rollback;

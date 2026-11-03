@@ -128,6 +128,7 @@ count could make a wrongly-accepted insert print PASS), and assert:
 | R4 | anon cannot execute either limiter function or read `rate_limits` | PASS |
 | R5 | a new window resets the count | PASS |
 | R6 | bad arguments (window 0) raise instead of counting | PASS |
+| R7 | a hit on any key clears every window older than a day (0010) | PASS |
 | R-par | 20 concurrent hits on one key with max 10 → exactly 10 allowed (upsert is atomic) | PASS (local replay) |
 
 REST-level smoke (anon key, live project): `rsvps` read → 401, `rsvps`
@@ -166,8 +167,8 @@ instance). Hits over the cap still count, so a flood stays blocked for its
 window. `rate_limit_release()` gives a hit back when a sign-up is not
 stored, so mistakes and closed/full answers stay free. Keys are
 `ip:`/`guest:` + HMAC-SHA256 (keyed with the service-role key) of the
-value, so no raw IP reaches the store. Each call deletes that key's rows
-older than a day. If the limiter is unreachable the route **fails open**
+value, so no raw IP reaches the store. Each call deletes every row older
+than a day, for any key (0010; 0009 only cleaned the caller's own key). If the limiter is unreachable the route **fails open**
 (logged); `submit_rsvp()`'s capacity gate stays the hard limit.
 
 ## Open items
