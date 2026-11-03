@@ -4,6 +4,7 @@ import eventJson from "@content/event.json";
 import activityJson from "@content/activity.json";
 import charmAndChatterJson from "@content/activities/charm-and-chatter.json";
 import charmsJson from "@content/charms.json";
+import botJson from "@content/bot.json";
 
 export type TimelineStep = { label: string; detail: string; done: boolean };
 export type ScheduleItem = { time: string; detail: string };
@@ -60,6 +61,20 @@ export type CharmsContent = {
   charms: Charm[];
 };
 
+// Telegram bot copy (F-09, #18). {placeholders} are filled in src/lib/bot.ts.
+export type BotContent = {
+  siteUrl: string;
+  // Charm of the day runs on these SGT dates, inclusive (YYYY-MM-DD).
+  window: { start: string; end: string };
+  startReply: string;
+  countReply: string;
+  countUnavailable: string;
+  charmOfDay: string;
+  friendshipLines: string[];
+  eventMorning: string;
+  eventAfternoon: string;
+};
+
 // The active interactive module (ADR-005): one config pointer.
 export type ActivityConfig = { active: string };
 
@@ -67,6 +82,7 @@ export const event: EventContent = eventJson;
 export const activity: ActivityContent = charmAndChatterJson;
 export const activityConfig: ActivityConfig = activityJson;
 export const charms: CharmsContent = charmsJson;
+export const bot: BotContent = botJson;
 
 // Every style family must belong to exactly one vibe, or pairing breaks;
 // checked at build time so a content edit cannot ship a gap.

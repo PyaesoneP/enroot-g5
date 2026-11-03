@@ -12,7 +12,7 @@ present ones, because it tells a reviewer what to expect *not* to find).
 ## 4.1 The style in one line
 
 > A **layered, serverless client-server** system: a static-first Next.js
-> front end and a Python Telegram bot as two thin front ends over a **managed
+> front end and a Telegram bot (route handlers in the same project) as two thin front ends over a **managed
 > BaaS blackboard**, with **strategy/plug-in** seams isolating the two
 > undecided features (the activity and the bot's behavior).
 

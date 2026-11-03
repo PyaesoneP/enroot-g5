@@ -98,7 +98,7 @@ free tiers of Vercel and Supabase.
   server-side validation (types, length caps), escaping on render (no stored
   XSS), per-identity and per-IP rate limiting, and a small stop-word list
   kept in `content/` with a human fallback in the Supabase table UI.
-- **F-09 Telegram bot.** A Python bot over the shared store with three
+- **F-09 Telegram bot.** A TypeScript bot (Next.js route handlers in the site project) over the shared store with three
   confirmed features (#18): (a) `/count`, the **live sign-up count**,
   (b) **charm of the day**, a daily post (1 to 18 Nov) showing one charm with
   a friendship line, a countdown and a link that opens the builder with that
@@ -159,7 +159,7 @@ free tiers of Vercel and Supabase.
 |---|---|---|
 | Supabase (managed Postgres) | Single data store: sign-ups, wall, outputs | RLS + anonymous auth; accessed only via the data layer (F-11). Tables: rsvp, wall, outputs. (The `scores` table from the earlier design is dropped with trivia, Section 9.) |
 | Vercel | Static CDN + serverless functions; deploy target | main to production, branch previews. |
-| Telegram Bot API | Bot messaging surface | Python bot, server-side credentials only. |
+| Telegram Bot API | Bot messaging surface | Webhook + cron route handlers, server-side credentials only. |
 | `content/` directory | Content interface | Plain files, git-versioned, read at build and at runtime. |
 
 ## 7. Requirements evidence (survey)
