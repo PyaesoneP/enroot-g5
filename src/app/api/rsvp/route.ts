@@ -3,6 +3,7 @@ import type { VibeId } from "@/lib/content";
 import { parsePicks, vibeOf } from "@/activities/charm-builder/picks";
 import { rsvp } from "@/lib/db";
 import { releaseSignup, reserveSignup } from "@/lib/rate-limit";
+import { GUEST_COOKIE, validGuestId } from "@/lib/guest";
 
 // Issue #15: sign-up rides the bracelet builder. Everything is validated
 // server-side; the vibe is recomputed from the picks here and never taken
@@ -16,6 +17,13 @@ const clientIp = (req: Request): string => {
   const ip = fwd?.split(",")[0]?.trim();
   if (ip) return ip;
   return `ua:${req.headers.get("user-agent") ?? "none"}`.slice(0, 128);
+};
+
+// The guest cookie (issue #13) adds a per-guest limit on top of per-IP.
+const guestId = (req: Request): string | null => {
+  const header = req.headers.get("cookie") ?? "";
+  const match = header.split(";").map((c) => c.trim()).find((c) => c.startsWith(`${GUEST_COOKIE}=`));
+  return validGuestId(match?.slice(GUEST_COOKIE.length + 1));
 };
 
 export async function POST(req: Request) {
@@ -65,8 +73,8 @@ export async function POST(req: Request) {
   // The window slot is reserved BEFORE the database call so parallel
   // requests cannot all pass the check, and released when the row is not
   // stored (failed validation, closed, full) — round-2 finding 1.
-  const ip = clientIp(req);
-  const limit = reserveSignup(ip);
+  const identity = { ip: clientIp(req), guest: guestId(req) };
+  const limit = await reserveSignup(identity);
   if (!limit.allowed) {
     return NextResponse.json(
       { error: "Too many sign-ups from here. Try again shortly." },
@@ -83,7 +91,7 @@ export async function POST(req: Request) {
       picks: storedPicks,
     });
   } catch (e) {
-    releaseSignup(ip);
+    await releaseSignup(identity);
     // Missing SUPABASE_SERVICE_ROLE_KEY and transport failures both land
     // here: answer with JSON, never the framework's HTML 500.
     console.error("[rsvp] submit failed:", e instanceof Error ? e.message : e);
@@ -91,7 +99,7 @@ export async function POST(req: Request) {
   }
 
   if (!result.ok) {
-    releaseSignup(ip);
+    await releaseSignup(identity);
     switch (result.reason) {
       case "closed":
         return NextResponse.json({ error: "Sign-ups are closed for now." }, { status: 403 });

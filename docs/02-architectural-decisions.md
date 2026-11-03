@@ -318,6 +318,14 @@ credentials are collected.
 - **No identity at all (pure IP rate-limit).** Simpler, but no ownership of posts
  and IP is shared on campus Wi-Fi (one hotspot = one IP for a crowd). Rejected.
 
+**Implementation note (2026-11-03, #13).** The token is a random UUID in an
+`HttpOnly`, `SameSite=Lax` cookie (`g5_guest`, 60 days), set by `src/proxy.ts`
+on the first page visit. There is **no Supabase anonymous sign-in**. Every
+write goes through a server route with the service role (submit_rsvp, the rate
+limiter), so a client JWT would add an auth user per visitor and protect
+nothing. The cookie is used for the per-guest sign-up limit now. The wall's
+"delete your own post" (#14) will use the same cookie.
+
 ---
 
 ## ADR-009 - UGC guardrails: validate, escape, rate-limit, filter
@@ -353,6 +361,15 @@ it may be genuinely offensive.
  one-day event (that would be a maintainability and security cost, not a gain).
 - Rate-limit tuning is a guess until event day; we start conservative and can
  raise it.
+
+**Implementation note (2026-11-03, #11).** The sign-up limits are
+**store-backed** (migration 0009): a fixed-window counter in Postgres shared by
+every serverless instance. The limits are 10 per minute per IP and 5 per hour
+per guest cookie. Keys are HMACs, so the store never holds a raw IP (doc 05). If
+the limiter itself is unreachable the route **fails open** and logs it. The
+capacity check in `submit_rsvp()` stays the hard limit, and a store outage fails
+the sign-up anyway. React escapes all rendered text, and the repo has no
+`dangerouslySetInnerHTML`. The stop-word filter is wall-only and ships with #14.
 
 **Alternatives.**
 

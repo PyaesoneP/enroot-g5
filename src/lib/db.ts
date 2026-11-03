@@ -109,3 +109,39 @@ export async function rsvpCount(): Promise<number | null> {
   const r = await rsvpCountStatus();
   return r.status === "ok" ? r.count : null;
 }
+
+// Store-backed rate limiting (issue #11, migration 0009). Keys arrive
+// already hashed from src/lib/rate-limit.ts. null = the limiter could not
+// be reached; the caller decides what that means.
+export type RateLimitHit = { allowed: boolean; retryAfterSec: number };
+
+export async function rateLimitHit(key: string, windowSec: number, max: number): Promise<RateLimitHit | null> {
+  try {
+    const { data, error } = await getServiceClient().rpc("rate_limit_hit", {
+      p_key: key,
+      p_window_sec: windowSec,
+      p_max: max,
+    });
+    const row = Array.isArray(data) ? (data[0] as { allowed: boolean; retry_after: number } | undefined) : undefined;
+    if (error || !row) {
+      console.error("[rate-limit] rate_limit_hit failed:", error?.code, error?.message);
+      return null;
+    }
+    return { allowed: row.allowed, retryAfterSec: row.retry_after };
+  } catch (e) {
+    console.error("[rate-limit] rate_limit_hit threw:", e instanceof Error ? e.message : e);
+    return null;
+  }
+}
+
+export async function rateLimitRelease(key: string, windowSec: number): Promise<void> {
+  try {
+    const { error } = await getServiceClient().rpc("rate_limit_release", {
+      p_key: key,
+      p_window_sec: windowSec,
+    });
+    if (error) console.error("[rate-limit] rate_limit_release failed:", error.code, error.message);
+  } catch (e) {
+    console.error("[rate-limit] rate_limit_release threw:", e instanceof Error ? e.message : e);
+  }
+}

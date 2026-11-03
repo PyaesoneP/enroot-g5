@@ -14,6 +14,7 @@
 | `charm_picks` | saved bracelet builds (jsonb, shape-bound) under an opaque `session_id` | no (ADR-008 anonymous identity) | anon read (`id`,`picks`,`created_at` — **not** `session_id`) + insert; owner-scoped delete via `delete_pick()` |
 | `guest_tokens` | event-day check-in codes, **hashed** | no | service-role only; anon/authenticated fully revoked |
 | `event_config` | singleton: capacity, live-count toggle, registration toggle | no | anon read; service-role write |
+| `rate_limits` | sign-up rate-limit counters: opaque key, fixed window start, hit count (0009, #11) | no: keys are HMACs, never a raw IP or guest id; rows live at most a day | **no grants** to anon/authenticated; only via `rate_limit_hit()` / `rate_limit_release()`, service_role only |
 
 ## PDPA posture (EPF Section E ticked **No**, confirmed 2026-10-27)
 
@@ -121,6 +122,13 @@ count could make a wrongly-accepted insert print PASS), and assert:
 | S6 | hidden count → NULL even for service_role | PASS |
 | S7 | missing event_config row → `closed` (fail-closed, 0008) | PASS |
 | post | anon suite asserts a net-zero table after every test | PASS |
+| R1 | `rate_limit_hit`: 10 hits allowed, 11th denied with `retry_after > 0` | PASS |
+| R2 | release frees a slot; R2b: release floors at zero | PASS |
+| R3 | keys are independent | PASS |
+| R4 | anon cannot execute either limiter function or read `rate_limits` | PASS |
+| R5 | a new window resets the count | PASS |
+| R6 | bad arguments (window 0) raise instead of counting | PASS |
+| R-par | 20 concurrent hits on one key with max 10 → exactly 10 allowed (upsert is atomic) | PASS (local replay) |
 
 REST-level smoke (anon key, live project): `rsvps` read → 401, `rsvps`
 insert → 42501, `/rpc/submit_rsvp` → 401, `charm_picks.session_id` read
@@ -129,8 +137,9 @@ create temp table as `postgres` → anon privileges `NONE`.
 
 Replay locally: `docker run -e POSTGRES_PASSWORD=test -p 5544:5432 -d
 postgres:17-alpine`, create roles `anon`/`authenticated`/`service_role`
-(`service_role` with `bypassrls`), apply all migration files, run both
-test files. The replay starts deny-by-default (unlike live Supabase), so
+(`service_role` with `bypassrls`), apply all migration files, run the three
+test files (`rls_acceptance`, `submit_rsvp_acceptance`,
+`rate_limit_acceptance`). The replay starts deny-by-default (unlike live Supabase), so
 it is what caught the un-codified `service_role` grants — now written
 into 0007.
 
@@ -146,6 +155,20 @@ into 0007.
   tables** — the anon key alone is the identity model we already use in
   the DAL design (#6). Enable Supabase auth-anon only if the wall (#14)
   needs a real per-user JWT; until then one fewer moving part.
+
+## Rate limiting (0009, issue #11)
+
+The sign-up route calls `rate_limit_hit(key, window_sec, max)` once per
+limit: per IP (10 / minute) and per guest cookie (5 / hour, #13). It is a
+fixed-window counter: an atomic upsert on `(key, window_start)`, so every
+serverless instance shares one count (the old in-memory map counted per
+instance). Hits over the cap still count, so a flood stays blocked for its
+window. `rate_limit_release()` gives a hit back when a sign-up is not
+stored, so mistakes and closed/full answers stay free. Keys are
+`ip:`/`guest:` + HMAC-SHA256 (keyed with the service-role key) of the
+value, so no raw IP reaches the store. Each call deletes that key's rows
+older than a day. If the limiter is unreachable the route **fails open**
+(logged); `submit_rsvp()`'s capacity gate stays the hard limit.
 
 ## Open items
 

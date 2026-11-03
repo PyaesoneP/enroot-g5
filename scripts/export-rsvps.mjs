@@ -1,6 +1,8 @@
 // Organiser CSV export for issue #15: run locally with the service-role
 // key (env only, never committed):  node scripts/export-rsvps.mjs
 // The key bypasses RLS; anon must never read rsvps rows.
+// The one deliberate exception to "only src/lib/db.ts imports Supabase"
+// (issue #6): a local ops script, not app code.
 import { createClient } from "@supabase/supabase-js";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

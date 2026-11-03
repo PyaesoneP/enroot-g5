@@ -108,10 +108,20 @@ Telegram bot (server only, production; see below):
 | `CRON_SECRET` | random string; Vercel sends it to the cron routes as `Authorization: Bearer` |
 
 Known limitation (accepted for the event): duplicate sign-ups are not
-blocked — reloading and submitting again adds another row. The per-IP
-rate limit bounds it, and walk-ins mean a double row skews planning,
+blocked — reloading and submitting again adds another row. The rate
+limits below bound it, and walk-ins mean a double row skews planning,
 not entry. Editing the bracelet after signing up does not update the
 stored row (the panel says the sign-up stands).
+
+## Guest cookie and rate limits
+
+- **Guest cookie (#13):** the first page visit gets a random `g5_guest` cookie (`HttpOnly`, 60 days) from `src/proxy.ts`. It isn't an account. It's only used for rate limits, and later for "your own posts" on the wall.
+- **Sign-up limits (#11):** at most 10 per minute per IP and 5 per hour per guest cookie. The counters are shared across all Vercel instances because they live in Postgres (`rate_limits`, migration 0009). Keys are HMACs, so no IP is stored. If the limiter can't be reached, sign-ups are allowed and the failure is logged.
+- **Checks:** run `supabase db query --linked -f supabase/tests/rate_limit_acceptance.sql` against the database. To check the data layer from a script, run `node --no-warnings --env-file=.env.local --conditions=react-server --experimental-strip-types scripts/dal-check.mjs`.
+
+## Poster QR
+
+`assets/poster-qr.png` (410×410) encodes https://enroot-g5.vercel.app/ (decoded and checked 2026-11-03).
 
 ## Telegram bot
 

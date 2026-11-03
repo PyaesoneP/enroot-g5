@@ -141,11 +141,15 @@ everything else is static.
 Exports operations, not queries:
 
 ```
-listWall(limit)    postWall(token, text)   deleteWall(token, id)
-rsvp(token)      rsvpCount()
-saveOutput(token, activityId, payload)  listOutputs(activityId?)
-submitScore(token, score)        topScores(n)
+rsvp(input)        rsvpCount()        rsvpCountStatus()       (built, #15/#19)
+rateLimitHit(key, windowSec, max)     rateLimitRelease(key, windowSec)  (#11)
+listWall(limit)    postWall(token, text)   deleteWall(token, id)   (#14)
+saveOutput(token, activityId, payload)  listOutputs(activityId?)   (#16)
 ```
+
+(`submitScore`/`topScores` were dropped with trivia. The one exception to "only
+the DAL imports Supabase" is `scripts/export-rsvps.mjs`, a local organiser
+export run by hand with the service-role key. It isn't app code.)
 
 **Key traits:**
 
@@ -156,9 +160,10 @@ submitScore(token, score)        topScores(n)
  (ADR-006).
 - Enforces the *agreement* between consumers: table shapes live here, in one
  place.
-- Carries RLS-aware client config: the client-side instance uses the anon key +
- the guest token; the bot-facing instance uses the service role and lives
- server-side only.
+- Carries RLS-aware client config: the anon instance serves public reads (the
+ live count); the service-role instance serves every write (sign-ups, rate
+ limits) and the bot, server-side only. The guest token (ADR-008) is a cookie
+ the routes read, not a Supabase session.
 
 ### C4 - Data Store (Supabase)
 
