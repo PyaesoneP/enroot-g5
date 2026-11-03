@@ -15,8 +15,12 @@ export type Post =
   | { kind: "photo"; photoUrl: string; caption: string }
   | { kind: "text"; text: string };
 
+// Strict: Date normalizes impossible dates (2026-02-31 -> 3 Mar), so the
+// parsed date must round-trip to the same string.
 export function isIsoDate(s: string): boolean {
-  return DATE_RE.test(s) && !Number.isNaN(Date.parse(`${s}T00:00:00Z`));
+  if (!DATE_RE.test(s)) return false;
+  const d = new Date(`${s}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
 }
 
 // Today's date in Singapore (UTC+8) as YYYY-MM-DD. Cron runs in UTC.

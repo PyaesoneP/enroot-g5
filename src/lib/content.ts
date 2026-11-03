@@ -68,6 +68,8 @@ export type BotContent = {
   window: { start: string; end: string };
   startReply: string;
   countReply: string;
+  // Shown when the organiser hides the live count (not an outage).
+  countHidden: string;
   countUnavailable: string;
   charmOfDay: string;
   friendshipLines: string[];

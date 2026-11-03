@@ -3,6 +3,7 @@
   "window": { "start": "2026-11-01", "end": "2026-11-18" },
   "startReply": "Hi! I'm the Charm & Chatter bot (EnROOT Group 5). Send /count to see how many people are coming. Thursday 19 Nov, 7pm, Root Cove.",
   "countReply": "{count} people are coming to Charm & Chatter so far. Thursday 19 Nov, 7pm, Root Cove. Walk-ins welcome too.",
+  "countHidden": "The sign-up count is private for now. Charm & Chatter is on Thursday 19 Nov, 7pm, Root Cove. Walk-ins welcome.",
   "countUnavailable": "Can't reach the sign-up list right now. Try again in a minute.",
   "charmOfDay": "Charm of the day: {label}\n{line}\n{days} to Charm & Chatter (19 Nov, 7pm, Root Cove).\nPut it on your bracelet: {link}",
   "friendshipLines": [

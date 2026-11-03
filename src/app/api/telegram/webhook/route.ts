@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { bot } from "@/lib/content";
 import { commandOf, fill } from "@/lib/bot";
-import { rsvpCount } from "@/lib/db";
+import { rsvpCountStatus } from "@/lib/db";
 import { secretMatches } from "@/lib/telegram";
 
 // Telegram webhook (ADR-010). Registered with a secret_token, which
@@ -37,8 +37,13 @@ export async function POST(req: Request) {
   let reply: string;
   switch (commandOf(text)) {
     case "count": {
-      const count = await rsvpCount();
-      reply = count === null ? bot.countUnavailable : fill(bot.countReply, { count });
+      const r = await rsvpCountStatus();
+      reply =
+        r.status === "ok"
+          ? fill(bot.countReply, { count: r.count })
+          : r.status === "hidden"
+            ? bot.countHidden
+            : bot.countUnavailable;
       break;
     }
     case "start":
