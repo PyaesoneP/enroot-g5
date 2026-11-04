@@ -245,13 +245,13 @@ no longer parses are skipped.
 
 | Test | Assertion | Result |
 |---|---|---|
-| O1 | anon/authenticated hold no privilege on `outputs` and cannot execute the functions; service_role has SELECT/DELETE but not INSERT/UPDATE/TRUNCATE; `charm_picks` is gone | PASS (local replay) |
-| O2 | save returns an id; same owner + payload returns the same id; another owner gets its own | PASS (local replay) |
-| O3 | bad owner / activity id / empty or 513-char payload → NULL, nothing stored | PASS (local replay) |
-| O4 | a `retired-module` row still lists; the activity filter works | PASS (local replay) |
-| O5 | `mine` only for the owner; `owner_hash` not returned | PASS (local replay) |
-| O6 | stranger / null / unknown id cannot delete; owner can | PASS (local replay) |
-| O7 | list limit clamped | PASS (local replay) |
+| O1 | anon/authenticated hold no privilege on `outputs` and cannot execute the functions; service_role has SELECT/DELETE but not INSERT/UPDATE/TRUNCATE; `charm_picks` is gone | PASS (live, 2026-11-04) |
+| O2 | save returns an id; same owner + payload returns the same id; another owner gets its own | PASS (live, 2026-11-04) |
+| O3 | bad owner / activity id / empty or 513-char payload → NULL, nothing stored | PASS (live, 2026-11-04) |
+| O4 | a `retired-module` row still lists; the activity filter works | PASS (live, 2026-11-04) |
+| O5 | `mine` only for the owner; `owner_hash` not returned | PASS (live, 2026-11-04) |
+| O6 | stranger / null / unknown id cannot delete; owner can | PASS (live, 2026-11-04) |
+| O7 | list limit clamped | PASS (live, 2026-11-04) |
 
 ## Open items
 
