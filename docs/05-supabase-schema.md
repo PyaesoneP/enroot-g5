@@ -14,7 +14,8 @@
 | `charm_picks` | saved bracelet builds (jsonb, shape-bound) under an opaque `session_id` | no (ADR-008 anonymous identity) | anon read (`id`,`picks`,`created_at` — **not** `session_id`) + insert; owner-scoped delete via `delete_pick()` |
 | `guest_tokens` | event-day check-in codes, **hashed** | no | service-role only; anon/authenticated fully revoked |
 | `event_config` | singleton: capacity, live-count toggle, registration toggle | no | anon read; service-role write |
-| `rate_limits` | sign-up rate-limit counters: opaque key, fixed window start, hit count (0009, #11) | no: keys are HMACs, never a raw IP or guest id; rows older than a day are purged daily | **no grants** to anon/authenticated; only via `rate_limit_hit()` / `rate_limit_release()`, service_role only |
+| `wall_posts` | friendship wall: optional name (≤ 40), message (≤ 280), owner hash (0011, #14) | **yes** (optional name + free text, public) | **no grants** to anon/authenticated; only via `wall_post()` / `wall_list()` / `wall_delete()`, service_role only; service_role SELECT/DELETE for ops (0012 revokes the INSERT/UPDATE/TRUNCATE Supabase's defaults had granted) |
+| `rate_limits` | rate-limit counters (sign-up, wall, gallery): opaque key, fixed window start, hit count (0009, #11) | no: keys are HMACs, never a raw IP or guest id; rows older than a day are purged daily | **no grants** to anon/authenticated; only via `rate_limit_hit()` / `rate_limit_release()`, service_role only |
 
 ## PDPA posture (EPF Section E ticked **No**, confirmed 2026-10-27)
 
@@ -22,7 +23,11 @@
   plain consent checkbox and records `consent_given` + `consent_at` — cheap
   insurance, not compliance theater.
 - **Nickname only. No email, no IP, no device fingerprint in the DB.**
-- Delete-by-~19-Dec obligation targets exactly one table (`rsvps`);
+- Delete-by-~19-Dec obligation targets `rsvps` and, since 0011,
+  `wall_posts` (public posts with an optional name; the post form says the
+  wall is cleared by 19 Dec — team decision 2026-11-04). Wall rows are
+  hard-deleted (`delete from public.wall_posts;`), no soft delete.
+  For `rsvps`:
   `deleted_at` soft-delete + a purge script (`SET deleted_at = now()`),
   hard DELETE at 30 days. `charm_picks` carries no personal data, so it
   can outlive the event for the gallery (#16).
@@ -132,7 +137,15 @@ count could make a wrongly-accepted insert print PASS), and assert:
 | R8 | `rate_limit_purge()` drops stale windows without traffic and keeps current ones | PASS |
 | R9 | `rate_limit_clear()` resets a key that was pushed past its max | PASS |
 | R4b | anon cannot execute `rate_limit_purge` / `rate_limit_clear` | PASS |
-| orch | `scripts/rate-limit-check.mjs`: reserve/release/fail-open orchestration with a fake store (7 cases) | PASS |
+| orch | `scripts/rate-limit-check.mjs`: reserve/release/fail-open orchestration with a fake store (8 cases, incl. separate counters per action) | PASS |
+| W1 | anon/authenticated hold no privilege on `wall_posts` (asserted with `has_table_privilege`) and cannot execute the functions; service_role has SELECT/DELETE but not INSERT/UPDATE/TRUNCATE (0012) | PASS (local replay) |
+| W2 | named, unnamed, 40-char name + 280-char body stored | PASS (local replay) |
+| W3 | empty / blank / 281-char body, 41-char / blank name, bad owner → `invalid`, nothing stored | PASS (local replay) |
+| W4 | `mine` true only for the caller's posts; `owner_hash` not returned | PASS (local replay) |
+| W5 | stranger / null owner / unknown id cannot delete; owner can | PASS (local replay) |
+| W6 | `wall_open = false` → `closed`, nothing stored | PASS (local replay) |
+| W7 | missing config row → `closed` (fails closed) | PASS (local replay) |
+| W8 | list limit clamped (0 → 1 row) | PASS (local replay) |
 | R-par | 20 concurrent hits on one key with max 10 → exactly 10 allowed (upsert is atomic) | PASS (local replay) |
 
 REST-level smoke (anon key, live project): `rsvps` read → 401, `rsvps`
@@ -142,11 +155,22 @@ create temp table as `postgres` → anon privileges `NONE`.
 
 Replay locally: `docker run -e POSTGRES_PASSWORD=test -p 5544:5432 -d
 postgres:17-alpine`, create roles `anon`/`authenticated`/`service_role`
-(`service_role` with `bypassrls`), apply all migration files, run the three
-test files (`rls_acceptance`, `submit_rsvp_acceptance`,
-`rate_limit_acceptance`). The replay starts deny-by-default (unlike live Supabase), so
-it is what caught the un-codified `service_role` grants — now written
-into 0007.
+(`service_role` with `bypassrls`), then **seed Supabase's default grants**
+before migrating, so the replay starts from what a live project hands new
+tables:
+
+```sql
+alter default privileges for role postgres in schema public
+  grant all on tables to anon, authenticated, service_role;
+```
+
+Apply all migration files and run the five test files (`rls_acceptance`,
+`submit_rsvp_acceptance`, `rate_limit_acceptance`, `wall_acceptance`,
+`outputs_acceptance`). With the seed, a missing revoke (0004/0005 for
+anon, 0012/0013 for service_role writes) fails W1/O1 locally instead of
+passing trivially. Before 2026-11-04 the replay was deny-by-default, which
+caught the un-codified `service_role` grants (now in 0007) but hid the
+live default grants that 0012 revokes.
 
 ## Deliberate deviations from issue #4's draft sketch
 
@@ -163,14 +187,16 @@ into 0007.
 
 ## Rate limiting (0009, issue #11)
 
-The sign-up route calls `rate_limit_hit(key, window_sec, max)` once per
-limit: per IP (10 / minute) and per guest cookie (5 / hour, #13). It is a
+Each public write route calls `rate_limit_hit(key, window_sec, max)` once
+per limit: sign-up per IP (10 / minute) and per guest cookie (5 / hour,
+#13); wall posts per IP (20 / minute) and per guest (5 / 10 minutes, #14).
+Each action counts separately (limits in `src/lib/rate-limit-keys.ts`). It is a
 fixed-window counter: an atomic upsert on `(key, window_start)`, so every
 serverless instance shares one count (the old in-memory map counted per
 instance). Hits over the cap still count, so a flood stays blocked for its
 window. `rate_limit_release()` gives a hit back when a sign-up is not
 stored, so mistakes and closed/full answers stay free. Keys are
-`ip:`/`guest:` + HMAC-SHA256 (keyed with the service-role key) of the
+`<action>:ip:`/`<action>:guest:` + HMAC-SHA256 (keyed with the service-role key) of the
 value, so no raw IP reaches the store. Rows older than a day are
 removed by every `rate_limit_hit()` call, for any key (0010; 0009 only cleaned
 the caller's own key). They're also removed by `rate_limit_purge()`, which a
@@ -180,6 +206,25 @@ cron is what keeps retention true once traffic stops after the event.
 because releases alone can't zero a counter that denied hits pushed past its
 max. If the limiter is unreachable the route **fails open**
 (logged); `submit_rsvp()`'s capacity gate stays the hard limit.
+
+## Friendship wall (0011, issue #14)
+
+`wall_posts` holds `owner_hash` (HMAC of the poster's `g5_guest` cookie,
+labelled `owner:` so it never equals a limit key), an optional `name`
+(1..40), `body` (1..280, CHECKed) and `created_at`. No grants to
+anon/authenticated. `/api/wall` validates, runs the stop-word filter
+(`content/stopwords.txt`), takes a per-IP + per-guest slot, then calls:
+
+- `wall_post(owner, name, body)` → `(status, id)`: `ok`, `invalid` (bounds,
+  re-checked here), or `closed` when `event_config.wall_open` is off or the
+  config row is missing (fails closed).
+- `wall_list(owner, limit)` → newest first, `(id, name, body, created_at,
+  mine)`; the owner hash never leaves the database; limit clamped 1..200.
+- `wall_delete(owner, id)` → true only for the owner's own post.
+
+`event_config.wall_open` (default true) is the organiser's kill switch for
+posting, flipped in the Table Editor. Moderation: delete the row in the
+Table Editor (ADR-009 human fallback). Suite: `supabase/tests/wall_acceptance.sql`.
 
 ## Open items
 

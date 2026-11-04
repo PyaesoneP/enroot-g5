@@ -1,0 +1,12 @@
+{
+  "title": "Friendship wall",
+  "intro": "Leave a note for the night: a shout-out to a friend, who you're bringing, or the charm you can't stop thinking about.",
+  "placeholder": "Say hi, thank a friend, or tell us who you're bringing.",
+  "notice": "Posts are public. Leave out phone numbers and handles. The wall is cleared after the event (by 19 Dec). You can delete your own post from this device.",
+  "anonymous": "Anonymous",
+  "empty": "No posts yet. Be the first to write something.",
+  "closed": "The wall is closed for new posts right now. You can still read it.",
+  "unavailable": "Can't load the wall right now. Try again in a minute.",
+  "filtered": "That post has a word we filter out. Please rephrase it.",
+  "deleteConfirm": "Delete your post? This can't be undone."
+}

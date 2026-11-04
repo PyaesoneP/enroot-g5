@@ -115,13 +115,24 @@ stored row (the panel says the sign-up stands).
 
 ## Guest cookie and rate limits
 
-- **Guest cookie (#13):** the first page visit gets a random `g5_guest` cookie (`HttpOnly`, 60 days) from `src/proxy.ts`. It isn't an account. It's only used for rate limits, and later for "your own posts" on the wall.
+- **Guest cookie (#13):** the first page visit gets a random `g5_guest` cookie (`HttpOnly`, 60 days) from `src/proxy.ts`. It isn't an account. It's only used for rate limits and for "your own posts" on the wall.
 - **Sign-up limits (#11):** at most 10 per minute per IP and 5 per hour per guest cookie. The counters are shared across all Vercel instances because they live in Postgres (`rate_limits`, migration 0009). Keys are HMACs, so no IP is stored. If the limiter can't be reached, sign-ups are allowed and the failure is logged.
+- **Wall limits (#14):** 20 posts per minute per IP and 5 per 10 minutes per guest cookie. Every action has its own counters; keys look like `signup:ip:<hmac>`, `wall:guest:<hmac>`.
 - **Retention:** counters older than a day are purged daily by the `/api/cron/purge-rate-limits` cron (03:00 SGT, `CRON_SECRET`).
 - **Checks:**
   - database: `supabase db query --linked -f supabase/tests/rate_limit_acceptance.sql`
   - limiter logic, no database: `node --no-warnings --conditions=react-server --experimental-strip-types --import ./scripts/ts-alias-hooks.mjs scripts/rate-limit-check.mjs`
-  - data layer from a script: `node --no-warnings --env-file=.env.local --conditions=react-server --experimental-strip-types scripts/dal-check.mjs`
+  - data layer from a script: `node --no-warnings --env-file=.env.local --conditions=react-server --experimental-strip-types scripts/dal-check.mjs` (flood helpers: `... dal-check.mjs seed|clear signup|wall|gallery ip|guest <value>`)
+
+## Friendship wall
+
+`/wall` (#14): post a message (280 characters, name optional), read everyone's, delete your own from the same device. Copy is in `content/wall.json`.
+
+- **Filter:** `content/stopwords.txt` (format at the top of the file). A post that matches isn't stored and the poster is asked to rephrase. Check it with `node --no-warnings --conditions=react-server --experimental-strip-types --import ./scripts/ts-alias-hooks.mjs scripts/stopwords-check.mjs`.
+- **Moderation:** to remove any post, delete its row in the Supabase Table Editor (`wall_posts`).
+- **Kill switch:** set `event_config.wall_open` to `false` to close posting (the wall stays readable).
+- **Retention:** posts are public and may carry a name, so the table is emptied by 19 Dec with the sign-ups: `delete from public.wall_posts;`.
+- **Database check:** `supabase db query --linked -f supabase/tests/wall_acceptance.sql` (rolled back).
 
 ## Poster QR
 

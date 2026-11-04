@@ -123,7 +123,8 @@ about other modules.
 
 **Responsibility:** the HTTP surface. Thin, named endpoints:
 
-- `POST /api/wall`, `GET /api/wall` - friendship wall
+- `POST /api/wall`, `DELETE /api/wall?id=` - friendship wall (built, #14;
+ the `/wall` page reads the list server-side, so there is no GET)
 - `POST /api/rsvp` - attendance
 - `POST /api/outputs` - save an interactive result (carries `activity_id`)
 - `POST /api/scores` - submit a game score (if a quiz/trivia lands)
@@ -143,7 +144,7 @@ Exports operations, not queries:
 ```
 rsvp(input)        rsvpCount()        rsvpCountStatus()       (built, #15/#19)
 rateLimitHit(key, windowSec, max)     rateLimitRelease(key, windowSec)  (#11)
-listWall(limit)    postWall(token, text)   deleteWall(token, id)   (#14)
+listWall(owner, limit)  postWall(owner, name, body)  deleteWall(owner, id)  wallOpen()  (built, #14)
 saveOutput(token, activityId, payload)  listOutputs(activityId?)   (#16)
 ```
 
@@ -172,7 +173,7 @@ export run by hand with the service-role key. It isn't app code.)
 | Table | Holds | RLS policy (summary) |
 |---|---|---|
 | `rsvp` | anonymous attendance sign-ups | insert: anon; select: none (counts via C3b); update/delete: owner token |
-| `wall` | friendship messages | insert: anon (rate-limited by C3, ADR-009); select: anon (public read); delete: owner token only |
+| `wall_posts` | friendship messages (built, 0011) | no anon grants; post/list/delete via service-role definer functions after C3's guardrails; delete only when the owner hash matches |
 | `outputs` | saved interactive results, each with `activity_id` + JSON payload | insert: anon; select: anon (public gallery); update/delete: owner token |
 | `scores` | game/trivia scores | insert: anon (rate-limited); select: anon (leaderboard); update/delete: owner token |
 

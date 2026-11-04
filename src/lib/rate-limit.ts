@@ -1,18 +1,19 @@
-// Sign-up rate limiting (issue #11, ADR-009), store-backed (migration
-// 0009) so every serverless instance shares one counter. Limits and key
-// derivation live in ./rate-limit-keys.ts.
-// A slot is RESERVED before the database call and RELEASED if the sign-up
+// Rate limiting for public writes (issues #11, #14, #16, ADR-009),
+// store-backed (migration 0009) so every serverless instance shares one
+// counter. Limits and key derivation live in ./rate-limit-keys.ts.
+// A slot is RESERVED before the database call and RELEASED if the write
 // is not stored, so validation mistakes and closed/full rejections stay
 // free (PR #37 round 2).
 //
 // Fail-open: a limit whose store call fails (null) does not block. If no
 // reachable limit denies, the request is allowed and that is logged.
-// submit_rsvp()'s capacity gate remains the hard limit.
+// The hard limits stay in the database (capacity in submit_rsvp(), the
+// wall_open switch, column bounds).
 import "server-only";
 import { rateLimitHit, rateLimitRelease } from "@/lib/db";
-import { LIMITS, limitKey, type LimitKind } from "@/lib/rate-limit-keys";
+import { LIMITS, limitKey, type LimitAction, type LimitKind } from "@/lib/rate-limit-keys";
 
-export type SignupIdentity = { ip: string; guest: string | null };
+export type RequestIdentity = { ip: string; guest: string | null };
 
 // The two store calls, injectable so scripts/rate-limit-check.mjs can
 // test the orchestration without a database.
@@ -24,22 +25,23 @@ const dbStore: LimitStore = { hit: rateLimitHit, release: rateLimitRelease };
 
 type Limit = { key: string; windowSec: number; max: number };
 
-function limitsFor(id: SignupIdentity): Limit[] {
+function limitsFor(action: LimitAction, id: RequestIdentity): Limit[] {
   const kinds: [LimitKind, string][] = [["ip", id.ip]];
   if (id.guest) kinds.push(["guest", id.guest]);
-  return kinds.map(([kind, value]) => ({ key: limitKey(kind, value), ...LIMITS[kind] }));
+  return kinds.map(([kind, value]) => ({ key: limitKey(action, kind, value), ...LIMITS[action][kind] }));
 }
 
-export async function reserveSignup(
-  id: SignupIdentity,
+export async function reserve(
+  action: LimitAction,
+  id: RequestIdentity,
   store: LimitStore = dbStore,
 ): Promise<{ allowed: boolean; retryAfterSec: number }> {
-  const limits = limitsFor(id);
+  const limits = limitsFor(action, id);
   const results = await Promise.all(limits.map((l) => store.hit(l.key, l.windowSec, l.max)));
   const denied = results.filter((r) => r !== null && !r.allowed);
   if (denied.length === 0) {
     if (results.some((r) => r === null)) {
-      console.error("[rate-limit] limiter unreachable; allowing request (fail-open)");
+      console.error(`[rate-limit] ${action}: limiter unreachable; allowing request (fail-open)`);
     }
     return { allowed: true, retryAfterSec: 0 };
   }
@@ -51,6 +53,6 @@ export async function reserveSignup(
   return { allowed: false, retryAfterSec: Math.max(...denied.map((r) => r!.retryAfterSec)) };
 }
 
-export async function releaseSignup(id: SignupIdentity, store: LimitStore = dbStore): Promise<void> {
-  await Promise.all(limitsFor(id).map((l) => store.release(l.key, l.windowSec)));
+export async function release(action: LimitAction, id: RequestIdentity, store: LimitStore = dbStore): Promise<void> {
+  await Promise.all(limitsFor(action, id).map((l) => store.release(l.key, l.windowSec)));
 }

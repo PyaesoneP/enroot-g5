@@ -327,6 +327,12 @@ limiter), so a client JWT would add an auth user per visitor and protect
 nothing. The cookie is used for the per-guest sign-up limit now. The wall's
 "delete your own post" (#14) will use the same cookie.
 
+**Implementation note (2026-11-04, #14).** Built: a wall post stores an
+HMAC of the cookie (`owner_hash`), never the cookie itself, and the
+database deletes a post only when the caller's hash matches
+(`wall_delete()`, migration 0011). If a write arrives without the cookie
+(the proxy skips `/api`), the route issues one so the post stays deletable.
+
 ---
 
 ## ADR-009 - UGC guardrails: validate, escape, rate-limit, filter
@@ -371,6 +377,19 @@ the limiter itself is unreachable the route **fails open** and logs it. The
 capacity check in `submit_rsvp()` stays the hard limit, and a store outage fails
 the sign-up anyway. React escapes all rendered text, and the repo has no
 `dangerouslySetInnerHTML`. The stop-word filter is wall-only and ships with #14.
+
+**Implementation note (2026-11-04, #14).** The wall runs the steps in a
+different order from the list above: validate, **filter, then rate-limit**,
+then store (escaping happens on render). So a post rejected for length
+(400) or by the filter (422) never uses a rate-limit slot, and a poster can
+rephrase freely; only posts that are about to be stored count. The steps:
+length caps (280 / name 40, repeated as database CHECKs), the stop-word
+filter (`content/stopwords.txt`: whole words, `prefix*`, phrases, common
+digit swaps undone; name and message both checked; if the list can't be
+read the post is refused), then 20 per minute per IP and 5 per 10 minutes
+per guest. A slot is given back if the post is still not stored (closed
+wall, database error). Each action (sign-up, wall, gallery) has its own counters. The
+organiser can close posting with `event_config.wall_open`.
 
 **Alternatives.**
 

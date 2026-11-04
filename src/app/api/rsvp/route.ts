@@ -2,49 +2,23 @@ import { NextResponse } from "next/server";
 import type { VibeId } from "@/lib/content";
 import { parsePicks, vibeOf } from "@/activities/charm-builder/picks";
 import { rsvp } from "@/lib/db";
-import { releaseSignup, reserveSignup } from "@/lib/rate-limit";
-import { GUEST_COOKIE, validGuestId } from "@/lib/guest";
+import { release, reserve } from "@/lib/rate-limit";
+import { requestIdentity } from "@/lib/identity";
+import { cleanText, readJsonObject } from "@/lib/http";
 
 // Issue #15: sign-up rides the bracelet builder. Everything is validated
 // server-side; the vibe is recomputed from the picks here and never taken
 // from the client. No email, phone or student ID is collected (PDPA).
 const MAX_BODY_BYTES = 4 * 1024;
 
-// x-forwarded-for is the only client-IP source on Vercel. When it is
-// absent, bucket by user agent instead of one shared "unknown" bucket.
-const clientIp = (req: Request): string => {
-  const fwd = req.headers.get("x-forwarded-for");
-  const ip = fwd?.split(",")[0]?.trim();
-  if (ip) return ip;
-  return `ua:${req.headers.get("user-agent") ?? "none"}`.slice(0, 128);
-};
-
-// The guest cookie (issue #13) adds a per-guest limit on top of per-IP.
-const guestId = (req: Request): string | null => {
-  const header = req.headers.get("cookie") ?? "";
-  const match = header.split(";").map((c) => c.trim()).find((c) => c.startsWith(`${GUEST_COOKIE}=`));
-  return validGuestId(match?.slice(GUEST_COOKIE.length + 1));
-};
-
 export async function POST(req: Request) {
-  let body: unknown;
-  try {
-    const raw = await req.arrayBuffer();
-    if (raw.byteLength > MAX_BODY_BYTES) {
-      return NextResponse.json({ error: "Request too large." }, { status: 413 });
-    }
-    body = JSON.parse(new TextDecoder().decode(raw));
-  } catch {
-    return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
-  }
-  if (typeof body !== "object" || body === null) {
-    return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
-  }
-  const b = body as Record<string, unknown>;
+  const read = await readJsonObject(req, MAX_BODY_BYTES);
+  if (!read.ok) return read.res;
+  const b = read.body;
 
   // Nickname optional: 1..40 chars, or empty -> "anonymous" (the DB
   // function re-checks length; strip control characters first).
-  const rawName = typeof b.nickname === "string" ? b.nickname.replace(/[\u0000-\u001f\u007f]/g, "").trim() : "";
+  const rawName = cleanText(b.nickname);
   if (rawName.length > 40) {
     return NextResponse.json({ error: "Nickname is at most 40 characters." }, { status: 400 });
   }
@@ -73,8 +47,9 @@ export async function POST(req: Request) {
   // The window slot is reserved BEFORE the database call so parallel
   // requests cannot all pass the check, and released when the row is not
   // stored (failed validation, closed, full) — round-2 finding 1.
-  const identity = { ip: clientIp(req), guest: guestId(req) };
-  const limit = await reserveSignup(identity);
+  // Per IP and per guest cookie (#13); helpers in src/lib/identity.ts.
+  const identity = requestIdentity(req);
+  const limit = await reserve("signup", identity);
   if (!limit.allowed) {
     return NextResponse.json(
       { error: "Too many sign-ups from here. Try again shortly." },
@@ -91,7 +66,7 @@ export async function POST(req: Request) {
       picks: storedPicks,
     });
   } catch (e) {
-    await releaseSignup(identity);
+    await release("signup", identity);
     // Missing SUPABASE_SERVICE_ROLE_KEY and transport failures both land
     // here: answer with JSON, never the framework's HTML 500.
     console.error("[rsvp] submit failed:", e instanceof Error ? e.message : e);
@@ -99,7 +74,7 @@ export async function POST(req: Request) {
   }
 
   if (!result.ok) {
-    await releaseSignup(identity);
+    await release("signup", identity);
     switch (result.reason) {
       case "closed":
         return NextResponse.json({ error: "Sign-ups are closed for now." }, { status: 403 });

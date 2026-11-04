@@ -1,11 +1,11 @@
 // Data layer smoke check (issue #6): proves the DAL is callable from a
 // plain script, outside Next. Uses the live store from .env.local:
 //   node --no-warnings --env-file=.env.local --conditions=react-server --experimental-strip-types scripts/dal-check.mjs
-// E2E flood test helpers (issue #11):
-//   ... dal-check.mjs seed ip|guest <value>   fill that identity's window
-//   ... dal-check.mjs clear ip|guest <value>  drop all its windows
+// E2E flood test helpers (issues #11, #14, #16; action = signup|wall|gallery):
+//   ... dal-check.mjs seed <action> ip|guest <value>   fill that identity's window
+//   ... dal-check.mjs clear <action> ip|guest <value>  drop all its windows
 // Exits non-zero if any store call fails.
-import { rateLimitClear, rateLimitHit, rateLimitRelease, rsvpCountStatus } from "../src/lib/db.ts";
+import { listWall, rateLimitClear, rateLimitHit, rateLimitRelease, rsvpCountStatus, wallOpen } from "../src/lib/db.ts";
 import { LIMITS, limitKey } from "../src/lib/rate-limit-keys.ts";
 
 const fail = (msg) => {
@@ -13,20 +13,20 @@ const fail = (msg) => {
   process.exit(1);
 };
 
-const [cmd, kind, value] = process.argv.slice(2);
+const [cmd, action, kind, value] = process.argv.slice(2);
 if (cmd === "seed" || cmd === "clear") {
-  if (!LIMITS[kind] || !value) fail("usage: seed|clear ip|guest <value>");
-  const key = limitKey(kind, value);
+  if (!LIMITS[action]?.[kind] || !value) fail("usage: seed|clear signup|wall|gallery ip|guest <value>");
+  const key = limitKey(action, kind, value);
   if (cmd === "seed") {
-    const { windowSec, max } = LIMITS[kind];
+    const { windowSec, max } = LIMITS[action][kind];
     for (let i = 0; i < max; i++) {
       if ((await rateLimitHit(key, windowSec, max)) === null) fail(`seed hit ${i + 1} failed`);
     }
-    console.log(`seed ${kind} ${value}: ${max} hits`);
+    console.log(`seed ${action} ${kind} ${value}: ${max} hits`);
   } else {
     const removed = await rateLimitClear(key);
     if (removed === null) fail("clear failed");
-    console.log(`clear ${kind} ${value}: ${removed} row(s) removed`);
+    console.log(`clear ${action} ${kind} ${value}: ${removed} row(s) removed`);
   }
 } else {
   const count = await rsvpCountStatus();
@@ -41,4 +41,8 @@ if (cmd === "seed" || cmd === "clear") {
   const removed = await rateLimitClear(key);
   if (removed !== 1) fail(`rateLimitClear removed ${removed}, expected 1`);
   console.log("rateLimitRelease + rateLimitClear: ok");
+  const open = await wallOpen();
+  const posts = await listWall(null, 5);
+  console.log("wallOpen:", open, "listWall(null, 5):", posts === null ? null : `${posts.length} post(s)`);
+  if (open === null || posts === null) fail("wall reads failed (migration 0011 applied?)");
 }
