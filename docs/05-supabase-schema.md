@@ -254,7 +254,7 @@ no longer parses are skipped.
 | O5 | `mine` only for the owner; `owner_hash` not returned | PASS (live, 2026-11-04) |
 | O6 | stranger / null / unknown id cannot delete; owner can | PASS (live, 2026-11-04) |
 | O7 | list limit clamped | PASS (live, 2026-11-04) |
-| O8 | `output_list_mine()` (0014) lists every own row, past the gallery's newest-48 page, and none of another owner's; nothing for a null owner | PASS (local replay) |
+| O8 | `output_list_mine()` (0014) lists every own row, past the gallery's newest-48 page, and none of another owner's; nothing for a null owner | PASS (live, 2026-11-04) |
 
 ## Open items
 
