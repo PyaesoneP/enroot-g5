@@ -14,7 +14,7 @@
 | `charm_picks` | saved bracelet builds (jsonb, shape-bound) under an opaque `session_id` | no (ADR-008 anonymous identity) | anon read (`id`,`picks`,`created_at` — **not** `session_id`) + insert; owner-scoped delete via `delete_pick()` |
 | `guest_tokens` | event-day check-in codes, **hashed** | no | service-role only; anon/authenticated fully revoked |
 | `event_config` | singleton: capacity, live-count toggle, registration toggle | no | anon read; service-role write |
-| `wall_posts` | friendship wall: optional name (≤ 40), message (≤ 280), owner hash (0011, #14) | **yes** (optional name + free text, public) | **no grants** to anon/authenticated; only via `wall_post()` / `wall_list()` / `wall_delete()`, service_role only; service_role SELECT/DELETE for ops |
+| `wall_posts` | friendship wall: optional name (≤ 40), message (≤ 280), owner hash (0011, #14) | **yes** (optional name + free text, public) | **no grants** to anon/authenticated; only via `wall_post()` / `wall_list()` / `wall_delete()`, service_role only; service_role SELECT/DELETE for ops (0012 revokes the INSERT/UPDATE/TRUNCATE Supabase's defaults had granted) |
 | `rate_limits` | rate-limit counters (sign-up, wall, gallery): opaque key, fixed window start, hit count (0009, #11) | no: keys are HMACs, never a raw IP or guest id; rows older than a day are purged daily | **no grants** to anon/authenticated; only via `rate_limit_hit()` / `rate_limit_release()`, service_role only |
 
 ## PDPA posture (EPF Section E ticked **No**, confirmed 2026-10-27)
@@ -137,8 +137,8 @@ count could make a wrongly-accepted insert print PASS), and assert:
 | R8 | `rate_limit_purge()` drops stale windows without traffic and keeps current ones | PASS |
 | R9 | `rate_limit_clear()` resets a key that was pushed past its max | PASS |
 | R4b | anon cannot execute `rate_limit_purge` / `rate_limit_clear` | PASS |
-| orch | `scripts/rate-limit-check.mjs`: reserve/release/fail-open orchestration with a fake store (7 cases) | PASS |
-| W1 | anon cannot execute `wall_post`/`wall_list`/`wall_delete`, read or insert `wall_posts` | PASS (local replay) |
+| orch | `scripts/rate-limit-check.mjs`: reserve/release/fail-open orchestration with a fake store (8 cases, incl. separate counters per action) | PASS |
+| W1 | anon/authenticated hold no privilege on `wall_posts` (asserted with `has_table_privilege`) and cannot execute the functions; service_role cannot INSERT/UPDATE/TRUNCATE (0012) | PASS (local replay) |
 | W2 | named, unnamed, 40-char name + 280-char body stored | PASS (local replay) |
 | W3 | empty / blank / 281-char body, 41-char / blank name, bad owner → `invalid`, nothing stored | PASS (local replay) |
 | W4 | `mine` true only for the caller's posts; `owner_hash` not returned | PASS (local replay) |

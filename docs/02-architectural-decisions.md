@@ -378,12 +378,17 @@ capacity check in `submit_rsvp()` stays the hard limit, and a store outage fails
 the sign-up anyway. React escapes all rendered text, and the repo has no
 `dangerouslySetInnerHTML`. The stop-word filter is wall-only and ships with #14.
 
-**Implementation note (2026-11-04, #14).** The wall uses the same pipeline:
+**Implementation note (2026-11-04, #14).** The wall runs the steps in a
+different order from the list above: validate, **filter, then rate-limit**,
+then store (escaping happens on render). So a post rejected for length
+(400) or by the filter (422) never uses a rate-limit slot, and a poster can
+rephrase freely; only posts that are about to be stored count. The steps:
 length caps (280 / name 40, repeated as database CHECKs), the stop-word
 filter (`content/stopwords.txt`: whole words, `prefix*`, phrases, common
 digit swaps undone; name and message both checked; if the list can't be
 read the post is refused), then 20 per minute per IP and 5 per 10 minutes
-per guest. Each action (sign-up, wall, gallery) has its own counters. The
+per guest. A slot is given back if the post is still not stored (closed
+wall, database error). Each action (sign-up, wall, gallery) has its own counters. The
 organiser can close posting with `event_config.wall_open`.
 
 **Alternatives.**

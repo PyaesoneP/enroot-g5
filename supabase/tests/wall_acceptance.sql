@@ -6,7 +6,27 @@ reset role;
 begin;
 update public.event_config set wall_open = true where id = true;
 
--- W1: anon / authenticated cannot touch the wall at all.
+-- W1: anon / authenticated cannot touch the wall at all. The privilege is
+-- asserted directly: a failed INSERT alone could also be RLS (same 42501),
+-- which would hide a grant regression (PR #41 review, finding 2).
+do $$
+declare r text; p text;
+begin
+  foreach r in array array['anon', 'authenticated'] loop
+    foreach p in array array['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE'] loop
+      if has_table_privilege(r, 'public.wall_posts', p) then
+        raise exception 'W1 FAIL: % holds % on wall_posts', r, p;
+      end if;
+    end loop;
+  end loop;
+  -- 0012: service_role reads and deletes (ops) but cannot write rows that
+  -- skip wall_post()'s checks.
+  foreach p in array array['INSERT', 'UPDATE', 'TRUNCATE'] loop
+    if has_table_privilege('service_role', 'public.wall_posts', p) then
+      raise exception 'W1 FAIL: service_role holds % on wall_posts', p;
+    end if;
+  end loop;
+end $$;
 set role anon;
 do $$
 begin
@@ -35,7 +55,7 @@ begin
     raise exception 'W1 FAIL: anon inserted into wall_posts';
   exception when insufficient_privilege then null;
   end;
-  raise notice 'W1 PASS: anon cannot post, list, delete, read or insert';
+  raise notice 'W1 PASS: no anon/authenticated table privileges, no service_role writes; anon cannot post, list, delete, read or insert';
 end $$;
 reset role;
 

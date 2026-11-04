@@ -32,7 +32,10 @@ export function DeleteOwnButton({
         setBusy(false);
         return;
       }
+      // The item disappears on the refreshed render; reset anyway in case
+      // the refresh fails, so the button never sticks on "Deleting...".
       router.refresh();
+      setBusy(false);
     } catch {
       setError("Could not reach the site. Try again.");
       setBusy(false);

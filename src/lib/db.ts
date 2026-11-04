@@ -250,9 +250,13 @@ export async function wallOpen(): Promise<boolean | null> {
       .select("wall_open")
       .eq("id", true)
       .maybeSingle();
-    if (error) return null;
+    if (error) {
+      console.error("[wall] wall_open read failed:", error.code, error.message);
+      return null;
+    }
     return data ? (data as { wall_open: boolean }).wall_open : false;
-  } catch {
+  } catch (e) {
+    console.error("[wall] wall_open read threw:", e instanceof Error ? e.message : e);
     return null;
   }
 }
