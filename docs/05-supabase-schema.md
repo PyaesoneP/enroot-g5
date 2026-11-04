@@ -2,16 +2,17 @@
 
 > Status: LIVE on project `ljrlsyajjcedegqqpfbk` (Charms_and_Chatters,
 > ap-southeast-1 — Singapore, forced by the EPF no-overseas-transfer clause).
-> Migrations `202610270001`–`0005` applied via `supabase db push`;
-> acceptance suite (T1-T10 + T8c) green on the live project and on a fresh
-> Postgres 16 replay of all five migrations.
+> Migrations `202610270001`–`202611040014` (0001–0014) applied via
+> `supabase db push`. Five acceptance suites (`supabase/tests/`: rls,
+> submit_rsvp, rate_limit, wall, outputs) pass live and on a Postgres 17
+> replay seeded with Supabase's default grants (recipe below).
 
 ## Tables
 
 | Table | Holds | Personal data? | Who touches it |
 |---|---|---|---|
 | `rsvps` | nickname, group size, vibe, bracelet picks, consent record | **yes** (nickname + consent timestamp) | **no public writes at all** — sign-ups go through `submit_rsvp()` (service_role only, 0007); service-role reads/purges |
-| `outputs` | gallery entries: `activity_id` + the module's serialized payload (≤ 512) + owner hash (0013, #16; replaces `charm_picks`) | no (no name or caption, team decision 2026-11-04) | **no grants** to anon/authenticated; only via `output_save()` / `output_list()` / `output_delete()` / `output_activities()`, service_role only |
+| `outputs` | gallery entries: `activity_id` + the module's serialized payload (≤ 512) + owner hash (0013, #16; replaces `charm_picks`) | no (no name or caption, team decision 2026-11-04) | **no grants** to anon/authenticated; only via `output_save()` / `output_list()` / `output_delete()` / `output_activities()` / `output_list_mine()`, service_role only; service_role SELECT/DELETE for ops |
 | `guest_tokens` | event-day check-in codes, **hashed** | no | service-role only; anon/authenticated fully revoked |
 | `event_config` | singleton: capacity, live-count toggle, registration toggle | no | anon read; service-role write |
 | `wall_posts` | friendship wall: optional name (≤ 40), message (≤ 280), owner hash (0011, #14) | **yes** (optional name + free text, public) | **no grants** to anon/authenticated; only via `wall_post()` / `wall_list()` / `wall_delete()`, service_role only; service_role SELECT/DELETE for ops (0012 revokes the INSERT/UPDATE/TRUNCATE Supabase's defaults had granted) |
@@ -56,10 +57,12 @@
     calls it with the service-role key from `src/lib/db.ts` — clients
     cannot post straight to PostgREST to skip `/api/rsvp`'s rate limit
     or validation.
-  - `charm_picks`: `select (id, picks, created_at)`, `insert
-    (session_id, picks)` → `session_id` is unreadable through the API,
-    which is what made `delete_pick()` gameable before (read a row,
-    steal its token, delete the pick).
+  - `wall_posts` (0011) and `outputs` (0013): no grants to
+    anon/authenticated at all; every read and write goes through
+    service-role definer functions called by the Next server.
+  - *(History: `charm_picks` had anon column grants and anon INSERT from
+    0004; 0013 dropped the table, which nothing used, because that
+    INSERT skipped every server-side rate limit.)*
 - Registration gate is enforced **in the database**: `submit_rsvp()`
   checks `registration_open` and `sum(group_size) + incoming <= capacity`
   under a `FOR UPDATE` lock on the singleton, returning
@@ -71,18 +74,17 @@
   by the `rsvp_consent_true` CHECK, not a policy.
 - `rsvp_live_count()` counts people (`sum(group_size)`), returns NULL
   when `live_count_visible` is off; returns only the number, never rows.
-- `charm_picks.picks` CHECK: jsonb array, 1..**4** items (= `pickCount`
-  in `content/charms.json`; a bracelet physically holds 4 — 0005
-  tightened the original 18, which was `linkCount` by mistake),
-  ≤ 2048 bytes (gallery junk / free-tier storage fill bounded).
+- `outputs.payload` CHECK: 1..512 characters (storage fill bounded); the
+  shape is validated by the activity module before saving, and the stored
+  form is the module's canonical `serialize()` output.
 - `guest_tokens` CHECK `used_count between 0 and max_uses` → concurrent
   redemptions of the same code can't both slip past the cap at the DB
   layer (the redeem path in #13 still wraps in a transaction).
-- Ownership for pick deletion lives in `delete_pick(pick_id,
-  caller_session)` — definer function, revoked from public, granted to
-  anon/authenticated. Spoofing a *known* session token remains accepted
-  risk (ADR-008); what 0004 removes is the ability to *harvest* every
-  token from the table.
+- Ownership (delete your own wall post or gallery entry) is an
+  `owner_hash` column: an HMAC of the `g5_guest` cookie, keyed server-side.
+  `wall_delete()` / `output_delete()` delete only when it matches, and the
+  hash is never returned, so it can't be harvested from the API. Spoofing
+  someone's *cookie* remains accepted risk (ADR-008).
 - No `service_role` RLS policies: service_role has BYPASSRLS, so such
   policies are dead code (removed in 0004). Protection for
   `guest_tokens` comes from the table-level revokes.
@@ -114,10 +116,7 @@ count could make a wrongly-accepted insert print PASS), and assert:
 | T3b | anon cannot EXECUTE `submit_rsvp` | PASS |
 | T4 | `rsvp_live_count()` grows +5 people after group_size 2+3 inserts, with no row access | PASS |
 | T6 | anon denied `guest_tokens` entirely | PASS |
-| T7 | `delete_pick`: wrong session + random UUID rejected; owner session accepted | PASS |
-| T8 | anon cannot read `charm_picks.session_id` (column grant) | PASS |
-| T8b | non-array and >2 KB picks rejected (CHECK) | PASS |
-| T8c | 5 picks rejected — cap is 4 = pickCount (0005) | PASS |
+| T7, T8, T8b, T8c | `charm_picks` / `delete_pick` checks | retired: 0013 dropped the table (ownership and bounds for gallery entries are O5/O6/O3) |
 | T10 | `rsvp_live_count()` returns NULL while `live_count_visible = false` | PASS |
 | S1 | valid submits accepted; count counts people (+3) | PASS |
 | S2 | null/empty/41-char nickname, group 0/6, unknown vibe, bad picks shapes → `invalid`, nothing stored | PASS |
@@ -149,8 +148,9 @@ count could make a wrongly-accepted insert print PASS), and assert:
 | R-par | 20 concurrent hits on one key with max 10 → exactly 10 allowed (upsert is atomic) | PASS (local replay) |
 
 REST-level smoke (anon key, live project): `rsvps` read → 401, `rsvps`
-insert → 42501, `/rpc/submit_rsvp` → 401, `charm_picks.session_id` read
-→ 401, `/rpc/rsvp_live_count` → 200. Future-table posture probe (live):
+insert → 42501, `/rpc/submit_rsvp` → 401, `/rpc/rsvp_live_count` → 200
+(2026-10-29; the `charm_picks.session_id` probe from then is moot since
+0013). Future-table posture probe (live):
 create temp table as `postgres` → anon privileges `NONE`.
 
 Replay locally: `docker run -e POSTGRES_PASSWORD=test -p 5544:5432 -d
@@ -174,10 +174,10 @@ live default grants that 0012 revokes.
 
 ## Deliberate deviations from issue #4's draft sketch
 
-- Issue text says "wall" and "outputs" tables — the activity changed
-  (Charm & Chatter, 2026-10-09 plan change); `charm_picks` covers the
-  gallery/kiosk need, the wall (#14) is stretch and will add its own
-  migration if built.
+- Issue text says "wall" and "outputs" tables. The first schema shipped
+  `charm_picks` for the gallery instead; when the gallery was built (#16)
+  it got a module-agnostic `outputs` table (0013) and `charm_picks` was
+  dropped. The wall got `wall_posts` (0011).
 - "Anon insert/read on all tables" contradicts PDPA-minimal: rsvp rows
   are write-only from the public API on purpose.
 - Anonymous auth (Supabase `signinAnon`) is **not needed for these
@@ -236,6 +236,8 @@ path with no rate limit. (Their tests T7/T8/T8b/T8c left the RLS suite.)
 `outputs` stores `activity_id` (`^[a-z0-9-]{1,40}$`), `payload` (the
 module's `serialize()` form, 1..512 chars), `owner_hash` and `created_at`,
 unique per (owner, activity, payload) so sharing twice keeps one row.
+The gallery page lists your own entries separately with `output_list_mine()`
+(0014), so Remove stays reachable however old an entry is.
 `/api/outputs` always uses the live module, parses the payload with it,
 requires a finished output (`shareable`), stores the re-serialized form and
 takes a per-IP (20 / minute) + per-guest (10 / hour) slot. The gallery
@@ -245,13 +247,14 @@ no longer parses are skipped.
 
 | Test | Assertion | Result |
 |---|---|---|
-| O1 | anon/authenticated hold no privilege on `outputs` and cannot execute the functions; service_role has SELECT/DELETE but not INSERT/UPDATE/TRUNCATE; `charm_picks` is gone | PASS (live, 2026-11-04) |
+| O1 | anon/authenticated hold no privilege on `outputs` and cannot execute the functions (incl. `output_list_mine`); service_role has SELECT/DELETE but not INSERT/UPDATE/TRUNCATE; `charm_picks` is gone | PASS (live, 2026-11-04) |
 | O2 | save returns an id; same owner + payload returns the same id; another owner gets its own | PASS (live, 2026-11-04) |
 | O3 | bad owner / activity id / empty or 513-char payload → NULL, nothing stored | PASS (live, 2026-11-04) |
 | O4 | a `retired-module` row still lists; the activity filter works | PASS (live, 2026-11-04) |
 | O5 | `mine` only for the owner; `owner_hash` not returned | PASS (live, 2026-11-04) |
 | O6 | stranger / null / unknown id cannot delete; owner can | PASS (live, 2026-11-04) |
 | O7 | list limit clamped | PASS (live, 2026-11-04) |
+| O8 | `output_list_mine()` (0014) lists every own row, past the gallery's newest-48 page, and none of another owner's; nothing for a null owner | PASS (local replay) |
 
 ## Open items
 

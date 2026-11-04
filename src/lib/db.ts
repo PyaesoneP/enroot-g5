@@ -310,6 +310,30 @@ export async function listOutputs(
   }
 }
 
+// Every entry this owner shared, however old (0014): the gallery's "Your
+// bracelets" section, so Remove stays reachable after an entry drops off
+// the newest page. [] for no owner; null = store error.
+export async function listMyOutputs(owner: string | null, limit: number): Promise<SavedOutput[] | null> {
+  if (!owner) return [];
+  try {
+    const { data, error } = await getServiceClient().rpc("output_list_mine", { p_owner: owner, p_limit: limit });
+    if (error || !Array.isArray(data)) {
+      console.error("[gallery] output_list_mine failed:", error?.code, error?.message);
+      return null;
+    }
+    return (data as { id: string; activity_id: string; payload: string; created_at: string }[]).map((r) => ({
+      id: r.id,
+      activityId: r.activity_id,
+      payload: r.payload,
+      createdAt: r.created_at,
+      mine: true,
+    }));
+  } catch (e) {
+    console.error("[gallery] output_list_mine threw:", e instanceof Error ? e.message : e);
+    return null;
+  }
+}
+
 // Activity ids that have outputs ([] on failure: the filter just hides).
 export async function outputActivities(): Promise<string[]> {
   try {

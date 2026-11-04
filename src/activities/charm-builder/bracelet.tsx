@@ -35,15 +35,42 @@ type Props = {
   selected?: number | null;
   // Outlined as "the next charm goes here".
   nextSlot?: number;
+  // Start turned so the charms face the viewer (gallery cards, #16). The
+  // builder starts at 0 because its charms sit on the front links.
+  faceCharms?: boolean;
 };
+
+// The turn that brings the charms' average direction to the front: the
+// circular mean of their angles. If they cancel out (charms on opposite
+// sides), face the first one.
+function facingTurn(picks: Picks): number {
+  if (picks.length === 0) return 0;
+  let x = 0;
+  let y = 0;
+  for (const p of picks) {
+    const a = (slotAngle(p.slot) * Math.PI) / 180;
+    x += Math.cos(a);
+    y += Math.sin(a);
+  }
+  const mean = Math.hypot(x, y) < 1e-6 ? slotAngle(picks[0].slot) : (Math.atan2(y, x) * 180) / Math.PI;
+  return -mean;
+}
 
 // A 3D view of the bracelet: links around a band, tilted towards the viewer.
 // Front faces show the charm or plain link; the inside of the band shows
 // plain steel, like the back of a real link.
-export function Bracelet({ picks, label = "Your bracelet", spin = false, onSlotClick, selected = null, nextSlot }: Props) {
+export function Bracelet({
+  picks,
+  label = "Your bracelet",
+  spin = false,
+  onSlotClick,
+  selected = null,
+  nextSlot,
+  faceCharms = false,
+}: Props) {
   // Current turn of the band, in degrees. Kept unbounded so turning always
   // takes the short way round.
-  const [turn, setTurn] = useState(0);
+  const [turn, setTurn] = useState(() => (faceCharms ? facingTurn(picks) : 0));
   const onSlot = new Map(picks.map((p) => [p.slot, p.id]));
 
   function bringToFront(slot: number) {

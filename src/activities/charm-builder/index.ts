@@ -1,3 +1,4 @@
+import { charms } from "@/lib/content";
 import type { ActivityModule } from "../types";
 import { CharmBuilder } from "./charm-builder";
 import { parsePicks, serializePicks, type Picks } from "./picks";
@@ -10,5 +11,6 @@ export const charmBuilder: ActivityModule<Picks> = {
   parse: parsePicks,
   serialize: serializePicks,
   shareable: shareablePicks,
+  notShareable: charms.notShareable,
   Preview: CharmBuilderPreview,
 };

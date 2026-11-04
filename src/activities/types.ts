@@ -14,6 +14,8 @@ export type ActivityModule<Output> = {
   serialize: (output: Output) => string;
   // Whether an output is finished enough to go on the public gallery.
   shareable: (output: Output) => boolean;
+  // Shown when a share is refused for not being shareable (content copy).
+  notShareable: string;
   // How one stored output looks on a gallery card. Server-renderable
   // (it may use client components inside).
   Preview: ComponentType<{ output: Output }>;

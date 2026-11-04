@@ -21,7 +21,7 @@ export async function POST(req: Request) {
   const activity = activeActivity();
   const payload = input ? activity.toShare(input) : null;
   if (!payload) {
-    return NextResponse.json({ error: "Finish your bracelet first (all four charms on)." }, { status: 400 });
+    return NextResponse.json({ error: activity.notShareable }, { status: 400 });
   }
 
   const { guest, owner, issue } = ensureGuest(req);

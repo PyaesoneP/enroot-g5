@@ -54,6 +54,11 @@ begin
   exception when insufficient_privilege then null;
   end;
   begin
+    perform * from public.output_list_mine('test-owner-anon-xxxxxxxx', 10);
+    raise exception 'O1 FAIL: anon executed output_list_mine';
+  exception when insufficient_privilege then null;
+  end;
+  begin
     perform 1 from public.outputs limit 1;
     raise exception 'O1 FAIL: anon read outputs';
   exception when insufficient_privilege then null;
@@ -136,6 +141,29 @@ begin
   raise notice 'O5 PASS: mine only for the owner, owner_hash not returned';
 end $$;
 
+-- O8 (0014): output_list_mine lists only the caller's own rows, beyond the
+-- gallery's newest-48 page; nobody's rows for a null owner.
+do $$
+declare i int; n int; foreign_rows int;
+begin
+  for i in 1..60 loop
+    perform public.output_save('test-owner-a-aaaaaaaaaaaa', 'charm-builder', 'o8-' || i);
+  end loop;
+  select count(*), count(*) filter (where id = current_setting('o.c')::uuid)
+    into n, foreign_rows
+    from public.output_list_mine('test-owner-a-aaaaaaaaaaaa', 200);
+  if n < 61 then raise exception 'O8 FAIL: own list has % rows, expected >= 61', n; end if;
+  if foreign_rows <> 0 then raise exception 'O8 FAIL: own list includes another owner''s row'; end if;
+  if not exists (select 1 from public.output_list_mine('test-owner-a-aaaaaaaaaaaa', 200)
+                  where id = current_setting('o.a')::uuid) then
+    raise exception 'O8 FAIL: oldest own row missing from own list';
+  end if;
+  select count(*) into n from public.output_list_mine(null, 200);
+  if n <> 0 then raise exception 'O8 FAIL: null owner listed % rows', n; end if;
+  delete from public.outputs where owner_hash = 'test-owner-a-aaaaaaaaaaaa' and payload like 'o8-%';
+  raise notice 'O8 PASS: own list covers every own row (61), none of others'', none for null';
+end $$;
+
 -- O6: only the owner can delete.
 do $$
 begin
@@ -172,5 +200,5 @@ begin
   end if;
 end $$;
 
-select 'ALL OUTPUTS TESTS PASS (O1-O7; rolled back, live-safe)' as result;
+select 'ALL OUTPUTS TESTS PASS (O1-O8; rolled back, live-safe)' as result;
 rollback;

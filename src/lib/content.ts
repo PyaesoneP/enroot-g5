@@ -52,6 +52,8 @@ export type CharmsContent = {
   note: string;
   // Under the copy button: what the bracelet link does.
   shareHint: string;
+  // The gallery refused a share because the bracelet isn't finished.
+  notShareable: string;
   vibes: Vibe[];
   // Shown with the visitor's vibe; {vibe} is replaced with its label.
   vibeTable: string;
