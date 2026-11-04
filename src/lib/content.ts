@@ -5,6 +5,7 @@ import activityJson from "@content/activity.json";
 import charmAndChatterJson from "@content/activities/charm-and-chatter.json";
 import charmsJson from "@content/charms.json";
 import botJson from "@content/bot.json";
+import wallJson from "@content/wall.json";
 
 export type TimelineStep = { label: string; detail: string; done: boolean };
 export type ScheduleItem = { time: string; detail: string };
@@ -77,6 +78,23 @@ export type BotContent = {
   eventAfternoon: string;
 };
 
+// Friendship wall copy (F-04, #14). The stop-word list is
+// content/stopwords.txt, read server-side by src/lib/stopwords.ts.
+export type WallContent = {
+  title: string;
+  intro: string;
+  placeholder: string;
+  // Shown under the form: public, no contact details, retention.
+  notice: string;
+  // Shown instead of a name when the poster left it blank.
+  anonymous: string;
+  empty: string;
+  closed: string;
+  unavailable: string;
+  filtered: string;
+  deleteConfirm: string;
+};
+
 // The active interactive module (ADR-005): one config pointer.
 export type ActivityConfig = { active: string };
 
@@ -85,6 +103,7 @@ export const activity: ActivityContent = charmAndChatterJson;
 export const activityConfig: ActivityConfig = activityJson;
 export const charms: CharmsContent = charmsJson;
 export const bot: BotContent = botJson;
+export const wall: WallContent = wallJson;
 
 // Every style family must belong to exactly one vibe, or pairing breaks;
 // checked at build time so a content edit cannot ship a gap.

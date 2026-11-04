@@ -1,3 +1,68 @@
-# UGC stop-word list (ADR-009). One word or phrase per line, case-insensitive.
-# Lines starting with # are ignored. Tuning this list is a content edit, not a
-# code change. The list is filled in with the guardrails work (#11).
+# UGC stop-word list (ADR-009), used by the friendship wall (#14) for both
+# the name and the message. A post that matches is not stored; the poster
+# is asked to rephrase. Tuning this list is a content edit, not a code change.
+#
+# Format, one entry per line (case-insensitive; lines starting with # are
+# ignored):
+#   word      matches that whole word only ("ass" does not block "class")
+#   word*     matches any word starting with it ("fuck*" blocks "fucking")
+#   two words a phrase, matched as written (spaces between words)
+# Common digit/symbol swaps are undone first (0->o, 1->i, 3->e, 4->a,
+# 5->s, 7->t, @->a, $->s), so "sh1t" is caught by "shit".
+#
+# Starter list for the team to review. It is blunt on purpose: anything it
+# misses, the maintainer deletes from the Supabase Table Editor.
+
+# English
+fuck*
+motherfuck*
+shit*
+bullshit
+bitch*
+bastard*
+cunt*
+dick
+dickhead*
+cock
+cocks
+pussy
+asshole*
+arsehole*
+wanker*
+slut*
+whore*
+twat*
+retard*
+faggot*
+fag
+fags
+nigger*
+nigga*
+rape
+raped
+rapist*
+porn*
+nude
+nudes
+kys
+kill yourself
+kill urself
+go die
+
+# Singlish / Hokkien / Malay
+knn
+kns
+ccb
+cb
+chee bye
+cheebye
+chibai
+jibai
+nabei
+kanina
+kani na
+lanjiao
+lan jiao
+pukimak
+puki
+butoh

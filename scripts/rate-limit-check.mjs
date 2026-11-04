@@ -1,27 +1,34 @@
-// Orchestration test for reserveSignup/releaseSignup (issue #11) with a
+// Orchestration test for reserve/release (issues #11, #14, #16) with a
 // fake store, no database:
 //   node --no-warnings --conditions=react-server --experimental-strip-types \
 //     --import ./scripts/ts-alias-hooks.mjs scripts/rate-limit-check.mjs
 // The store primitives themselves are covered by
 // supabase/tests/rate_limit_acceptance.sql.
 import assert from "node:assert/strict";
-import { releaseSignup, reserveSignup } from "../src/lib/rate-limit.ts";
+import { release, reserve } from "../src/lib/rate-limit.ts";
+import { LIMITS } from "../src/lib/rate-limit-keys.ts";
+
+const reserveSignup = (id, store) => reserve("signup", id, store);
+const releaseSignup = (id, store) => release("signup", id, store);
 
 const ok = { allowed: true, retryAfterSec: 0 };
 const no = (s) => ({ allowed: false, retryAfterSec: s });
 
-// answers: per key prefix ("ip" / "guest") what hit() returns.
+// Keys are "<action>:<kind>:<hmac>". answers: per kind ("ip" / "guest")
+// what hit() returns.
 function fakeStore(answers) {
-  const calls = { hit: [], release: [] };
+  const calls = { hit: [], release: [], keys: [] };
   return {
     calls,
     store: {
       hit: async (key, windowSec, max) => {
-        calls.hit.push({ kind: key.split(":")[0], windowSec, max });
-        return answers[key.split(":")[0]];
+        const [action, kind] = key.split(":");
+        calls.keys.push(key);
+        calls.hit.push({ action, kind, windowSec, max });
+        return answers[kind];
       },
       release: async (key) => {
-        calls.release.push(key.split(":")[0]);
+        calls.release.push(key.split(":")[1]);
       },
     },
   };
@@ -38,8 +45,8 @@ try {
     const f = fakeStore({ ip: ok, guest: ok });
     assert.deepEqual(await reserveSignup(withGuest, f.store), ok);
     assert.deepEqual(f.calls.hit, [
-      { kind: "ip", windowSec: 60, max: 10 },
-      { kind: "guest", windowSec: 3600, max: 5 },
+      { action: "signup", kind: "ip", windowSec: 60, max: 10 },
+      { action: "signup", kind: "guest", windowSec: 3600, max: 5 },
     ]);
     assert.deepEqual(f.calls.release, []);
   }
@@ -81,7 +88,23 @@ try {
     await releaseSignup(withGuest, f.store);
     assert.deepEqual(f.calls.release.sort(), ["guest", "ip"]);
   }
+  // 8. Actions count separately: the same visitor gets different keys per
+  //    action, with that action's limits (wall posts never use sign-up slots).
+  {
+    const f = fakeStore({ ip: ok, guest: ok });
+    await reserve("signup", withGuest, f.store);
+    await reserve("wall", withGuest, f.store);
+    await reserve("gallery", withGuest, f.store);
+    assert.equal(new Set(f.calls.keys).size, 6, "six distinct keys for three actions x two kinds");
+    for (const action of ["signup", "wall", "gallery"]) {
+      for (const kind of ["ip", "guest"]) {
+        const call = f.calls.hit.find((c) => c.action === action && c.kind === kind);
+        assert.deepEqual({ windowSec: call.windowSec, max: call.max }, LIMITS[action][kind]);
+      }
+    }
+    assert.ok(f.calls.keys.every((k) => !k.includes(withGuest.ip) && !k.includes(withGuest.guest)), "no raw ids in keys");
+  }
 } finally {
   console.error = origError;
 }
-console.log("rate-limit orchestration: 7/7 pass");
+console.log("rate-limit orchestration: 8/8 pass");

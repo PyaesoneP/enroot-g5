@@ -176,3 +176,83 @@ export async function rateLimitClear(key: string): Promise<number | null> {
     return null;
   }
 }
+
+// Friendship wall (issue #14, migration 0011). `owner` is the HMAC of the
+// guest cookie (src/lib/identity.ts); the store never returns it, only
+// whether each post is the caller's (`mine`).
+export type WallPost = { id: string; name: string | null; body: string; createdAt: string; mine: boolean };
+
+export type WallPostResult =
+  | { ok: true; id: string }
+  | { ok: false; reason: "closed" | "invalid" | "db_error" };
+
+export async function postWall(owner: string, name: string | null, body: string): Promise<WallPostResult> {
+  try {
+    const { data, error } = await getServiceClient().rpc("wall_post", {
+      p_owner: owner,
+      p_name: name,
+      p_body: body,
+    });
+    if (error) {
+      console.error("[wall] wall_post failed:", error.code, error.message);
+      return { ok: false, reason: "db_error" };
+    }
+    const row = Array.isArray(data) ? (data[0] as { status: string; id: string | null } | undefined) : undefined;
+    if (row?.status === "ok" && row.id) return { ok: true, id: row.id };
+    if (row?.status === "closed" || row?.status === "invalid") return { ok: false, reason: row.status };
+    console.error("[wall] unexpected wall_post result:", data);
+    return { ok: false, reason: "db_error" };
+  } catch (e) {
+    console.error("[wall] wall_post threw:", e instanceof Error ? e.message : e);
+    return { ok: false, reason: "db_error" };
+  }
+}
+
+// Newest first. null = the store could not be read (the page says so
+// instead of showing an empty wall).
+export async function listWall(owner: string | null, limit: number): Promise<WallPost[] | null> {
+  try {
+    const { data, error } = await getServiceClient().rpc("wall_list", { p_owner: owner, p_limit: limit });
+    if (error || !Array.isArray(data)) {
+      console.error("[wall] wall_list failed:", error?.code, error?.message);
+      return null;
+    }
+    return (data as { id: string; name: string | null; body: string; created_at: string; mine: boolean }[]).map(
+      (r) => ({ id: r.id, name: r.name, body: r.body, createdAt: r.created_at, mine: r.mine }),
+    );
+  } catch (e) {
+    console.error("[wall] wall_list threw:", e instanceof Error ? e.message : e);
+    return null;
+  }
+}
+
+// true = deleted; false = not yours / not found; null = store error.
+export async function deleteWall(owner: string, id: string): Promise<boolean | null> {
+  try {
+    const { data, error } = await getServiceClient().rpc("wall_delete", { p_owner: owner, p_id: id });
+    if (error) {
+      console.error("[wall] wall_delete failed:", error.code, error.message);
+      return null;
+    }
+    return data === true;
+  } catch (e) {
+    console.error("[wall] wall_delete threw:", e instanceof Error ? e.message : e);
+    return null;
+  }
+}
+
+// Whether posting is open (event_config.wall_open). Public flag, read with
+// the anon client like the live count. null = unknown (store unreachable).
+export async function wallOpen(): Promise<boolean | null> {
+  try {
+    const { data, error } = await getAnonClient()
+      .from("event_config")
+      .select("wall_open")
+      .eq("id", true)
+      .maybeSingle();
+    if (error) return null;
+    return data ? (data as { wall_open: boolean }).wall_open : false;
+  } catch {
+    return null;
+  }
+}

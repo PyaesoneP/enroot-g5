@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { GUEST_COOKIE, GUEST_MAX_AGE_SEC } from "@/lib/guest";
+import { GUEST_COOKIE, guestCookie } from "@/lib/guest";
 
 // Issues the guest cookie (issue #13) on the first page visit. The matcher
 // only runs this when the cookie is missing, and never for API routes,
@@ -7,15 +7,7 @@ import { GUEST_COOKIE, GUEST_MAX_AGE_SEC } from "@/lib/guest";
 export function proxy(request: NextRequest) {
   const response = NextResponse.next();
   if (!request.cookies.has(GUEST_COOKIE)) {
-    response.cookies.set({
-      name: GUEST_COOKIE,
-      value: crypto.randomUUID(),
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: GUEST_MAX_AGE_SEC,
-    });
+    response.cookies.set(guestCookie(crypto.randomUUID()));
   }
   return response;
 }
