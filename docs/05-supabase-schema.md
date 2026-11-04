@@ -245,7 +245,7 @@ no longer parses are skipped.
 
 | Test | Assertion | Result |
 |---|---|---|
-| O1 | anon/authenticated hold no privilege on `outputs` and cannot execute the functions; service_role cannot INSERT/UPDATE/TRUNCATE; `charm_picks` is gone | PASS (local replay) |
+| O1 | anon/authenticated hold no privilege on `outputs` and cannot execute the functions; service_role has SELECT/DELETE but not INSERT/UPDATE/TRUNCATE; `charm_picks` is gone | PASS (local replay) |
 | O2 | save returns an id; same owner + payload returns the same id; another owner gets its own | PASS (local replay) |
 | O3 | bad owner / activity id / empty or 513-char payload → NULL, nothing stored | PASS (local replay) |
 | O4 | a `retired-module` row still lists; the activity filter works | PASS (local replay) |

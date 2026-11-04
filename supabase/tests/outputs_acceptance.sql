@@ -22,6 +22,13 @@ begin
       raise exception 'O1 FAIL: service_role holds % on outputs', p;
     end if;
   end loop;
+  -- ...and still reads and deletes (ops), which the definer functions
+  -- don't need, so O2-O7 can't catch an over-revoke.
+  foreach p in array array['SELECT', 'DELETE'] loop
+    if not has_table_privilege('service_role', 'public.outputs', p) then
+      raise exception 'O1 FAIL: service_role lost % on outputs', p;
+    end if;
+  end loop;
 end $$;
 set role anon;
 do $$
@@ -54,7 +61,7 @@ begin
   if to_regclass('public.charm_picks') is not null then
     raise exception 'O1 FAIL: charm_picks still exists';
   end if;
-  raise notice 'O1 PASS: no anon/authenticated privileges, no service_role writes; charm_picks dropped';
+  raise notice 'O1 PASS: no anon/authenticated privileges, service_role SELECT/DELETE only; charm_picks dropped';
 end $$;
 reset role;
 
