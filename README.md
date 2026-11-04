@@ -124,6 +124,10 @@ stored row (the panel says the sign-up stands).
   - limiter logic, no database: `node --no-warnings --conditions=react-server --experimental-strip-types --import ./scripts/ts-alias-hooks.mjs scripts/rate-limit-check.mjs`
   - data layer from a script: `node --no-warnings --env-file=.env.local --conditions=react-server --experimental-strip-types scripts/dal-check.mjs` (flood helpers: `... dal-check.mjs seed|clear signup|wall|gallery ip|guest <value>`)
 
+## Gallery
+
+`/gallery` (#16): finished bracelets people chose to share from the builder ("Share to gallery"). No name or caption, just the bracelet and its vibe; you can remove your own from the same device. Copy is in `content/gallery.json`. Limits: 20 shares per minute per IP, 10 per hour per guest. Database check: `supabase db query --linked -f supabase/tests/outputs_acceptance.sql` (rolled back).
+
 ## Friendship wall
 
 `/wall` (#14): post a message (280 characters, name optional), read everyone's, delete your own from the same device. Copy is in `content/wall.json`.

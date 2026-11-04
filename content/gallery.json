@@ -1,0 +1,9 @@
+{
+  "title": "Bracelet gallery",
+  "intro": "Bracelets people have made and chosen to share. No names, just charms. Spot one you like? Make your own.",
+  "shareNotice": "Just the bracelet goes on the public gallery, no name. You can remove it from there any time.",
+  "shared": "Shared! It's on the gallery now.",
+  "empty": "No bracelets shared yet. Finish yours and tap \"Share to gallery\".",
+  "unavailable": "Can't load the gallery right now. Try again in a minute.",
+  "removeConfirm": "Remove your bracelet from the gallery?"
+}

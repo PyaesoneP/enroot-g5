@@ -126,7 +126,7 @@ about other modules.
 - `POST /api/wall`, `DELETE /api/wall?id=` - friendship wall (built, #14;
  the `/wall` page reads the list server-side, so there is no GET)
 - `POST /api/rsvp` - attendance
-- `POST /api/outputs` - save an interactive result (carries `activity_id`)
+- `POST /api/outputs`, `DELETE /api/outputs?id=` - share / remove an interactive result (built, #16; `activity_id` is always the live module)
 - `POST /api/scores` - submit a game score (if a quiz/trivia lands)
 
 Each handler: authenticates the anonymous token, **validates server-side
@@ -145,7 +145,7 @@ Exports operations, not queries:
 rsvp(input)        rsvpCount()        rsvpCountStatus()       (built, #15/#19)
 rateLimitHit(key, windowSec, max)     rateLimitRelease(key, windowSec)  (#11)
 listWall(owner, limit)  postWall(owner, name, body)  deleteWall(owner, id)  wallOpen()  (built, #14)
-saveOutput(token, activityId, payload)  listOutputs(activityId?)   (#16)
+saveOutput(owner, activityId, payload)  listOutputs(owner, activityId?, limit)  deleteOutput(owner, id)  outputActivities()  (built, #16)
 ```
 
 (`submitScore`/`topScores` were dropped with trivia. The one exception to "only
@@ -174,7 +174,7 @@ export run by hand with the service-role key. It isn't app code.)
 |---|---|---|
 | `rsvp` | anonymous attendance sign-ups | insert: anon; select: none (counts via C3b); update/delete: owner token |
 | `wall_posts` | friendship messages (built, 0011) | no anon grants; post/list/delete via service-role definer functions after C3's guardrails; delete only when the owner hash matches |
-| `outputs` | saved interactive results, each with `activity_id` + JSON payload | insert: anon; select: anon (public gallery); update/delete: owner token |
+| `outputs` | saved interactive results, each with `activity_id` + serialized payload (built, 0012) | no anon grants; save/list/delete via service-role definer functions; delete only when the owner hash matches |
 | `scores` | game/trivia scores | insert: anon (rate-limited); select: anon (leaderboard); update/delete: owner token |
 
 **Key traits:**

@@ -101,82 +101,8 @@ begin
   end;
 end $$;
 
--- T7: delete_pick ownership check. Session labels include random() so
--- the suite never collides with real picks on a live table. The id and
--- session are captured at INSERT via RETURNING into GUCs — anon can no
--- longer read session_id back (0004), which is exactly what T8 proves.
-select set_config('t7.sess', 'sess-owner-' || md5(random()::text), false);
-with new_pick as (
-  insert into public.charm_picks (session_id, picks)
-  values (current_setting('t7.sess'), '[{"charm":"cat","link":0}]'::jsonb)
-  returning id
-)
-select set_config('t7.pick_id', (select id::text from new_pick), false);
-select set_config('t7c.random_ok',
-  public.delete_pick('22222222-2222-2222-2222-222222222222',
-                     'sess-owner-' || md5('nothing'))::text, false);
-select set_config('t7.attacker_ok',
-  public.delete_pick(current_setting('t7.pick_id')::uuid, 'sess-attacker-9')::text, false);
-select set_config('t7b.owner_ok',
-  public.delete_pick(current_setting('t7.pick_id')::uuid,
-                     current_setting('t7.sess'))::text, false);
-do $$
-begin
-  if current_setting('t7c.random_ok')::boolean   then raise exception 'T7c FAIL: random id deleted'; end if;
-  if current_setting('t7.attacker_ok')::boolean  then raise exception 'T7 FAIL: attacker deleted someone else''s pick'; end if;
-  if not current_setting('t7b.owner_ok')::boolean then raise exception 'T7b FAIL: owner could not delete own pick'; end if;
-  raise notice 'T7 PASS: wrong session + random id rejected, owner session accepted';
-end $$;
-
--- T8 (0004): session_id must NOT be selectable (review #1: reading the
--- table handed attackers the ownership token for every pick).
-do $$
-declare s text;
-begin
-  begin
-    select session_id into s from public.charm_picks limit 1;
-    raise exception 'T8 FAIL: anon can read charm_picks.session_id';
-  exception when insufficient_privilege then
-    raise notice 'T8 PASS: session_id column denied';
-  end;
-end $$;
-
--- T8b (0004): non-array / oversized picks rejected (review: storage-fill)
-do $$
-begin
-  begin
-    insert into public.charm_picks (session_id, picks)
-    values ('sess-junk-' || md5(random()::text), '"not-an-array"'::jsonb);
-    raise exception 'T8b FAIL: non-array picks accepted';
-  exception when check_violation then
-    raise notice 'T8b PASS: non-array picks rejected';
-  end;
-end $$;
-do $$
-begin
-  begin
-    insert into public.charm_picks (session_id, picks)
-    values ('sess-big-' || md5(random()::text),
-            jsonb_build_array(repeat('x', 2100)));
-    raise exception 'T8b FAIL: 2100-byte picks accepted';
-  exception when check_violation then
-    raise notice 'T8b PASS: oversized picks rejected';
-  end;
-end $$;
-
--- T8c (round 2): > pickCount charms rejected (0005 tightened 18 -> 4;
--- a bracelet physically holds 4 — content/charms.json pickCount).
-do $$
-begin
-  begin
-    insert into public.charm_picks (session_id, picks)
-    values ('sess-over-' || md5(random()::text),
-            '["a","b","c","d","e"]'::jsonb);
-    raise exception 'T8c FAIL: 5 picks accepted (cap is 4)';
-  exception when check_violation then
-    raise notice 'T8c PASS: 5 picks rejected, cap 4 enforced';
-  end;
-end $$;
+-- T7/T8/T8b/T8c tested charm_picks + delete_pick(), which migration 0012
+-- dropped (the gallery uses `outputs`; see outputs_acceptance.sql, O1-O8).
 
 -- T10 (0004): live_count_visible=false -> RPC returns NULL (review #3)
 reset role;
@@ -208,6 +134,6 @@ end $$;
 
 -- Success row for channels that drop NOTICEs (supabase db query):
 -- a failure raises first and this row is never returned.
-select 'ALL ANON TESTS PASS (T1-T10 + net-zero post-state; live-safe)' as result;
+select 'ALL ANON TESTS PASS (T1-T6, T10 + net-zero post-state; live-safe)' as result;
 
 rollback;  -- suite leaves no residue: re-runnable on any schema

@@ -11,7 +11,7 @@
 | Table | Holds | Personal data? | Who touches it |
 |---|---|---|---|
 | `rsvps` | nickname, group size, vibe, bracelet picks, consent record | **yes** (nickname + consent timestamp) | **no public writes at all** — sign-ups go through `submit_rsvp()` (service_role only, 0007); service-role reads/purges |
-| `charm_picks` | saved bracelet builds (jsonb, shape-bound) under an opaque `session_id` | no (ADR-008 anonymous identity) | anon read (`id`,`picks`,`created_at` — **not** `session_id`) + insert; owner-scoped delete via `delete_pick()` |
+| `outputs` | gallery entries: `activity_id` + the module's serialized payload (≤ 512) + owner hash (0012, #16; replaces `charm_picks`) | no (no name or caption, team decision 2026-11-04) | **no grants** to anon/authenticated; only via `output_save()` / `output_list()` / `output_delete()` / `output_activities()`, service_role only |
 | `guest_tokens` | event-day check-in codes, **hashed** | no | service-role only; anon/authenticated fully revoked |
 | `event_config` | singleton: capacity, live-count toggle, registration toggle | no | anon read; service-role write |
 | `wall_posts` | friendship wall: optional name (≤ 40), message (≤ 280), owner hash (0011, #14) | **yes** (optional name + free text, public) | **no grants** to anon/authenticated; only via `wall_post()` / `wall_list()` / `wall_delete()`, service_role only; service_role SELECT/DELETE for ops (0012 revokes the INSERT/UPDATE/TRUNCATE Supabase's defaults had granted) |
@@ -29,8 +29,8 @@
   hard-deleted (`delete from public.wall_posts;`), no soft delete.
   For `rsvps`:
   `deleted_at` soft-delete + a purge script (`SET deleted_at = now()`),
-  hard DELETE at 30 days. `charm_picks` carries no personal data, so it
-  can outlive the event for the gallery (#16).
+  hard DELETE at 30 days. `outputs` carries no personal data, so the
+  gallery (#16) can outlive the event.
 - `guest_tokens` stores a hash, never the raw code — a DB leak cannot
   mint valid check-ins.
 
@@ -189,7 +189,8 @@ live default grants that 0012 revokes.
 
 Each public write route calls `rate_limit_hit(key, window_sec, max)` once
 per limit: sign-up per IP (10 / minute) and per guest cookie (5 / hour,
-#13); wall posts per IP (20 / minute) and per guest (5 / 10 minutes, #14).
+#13); wall posts per IP (20 / minute) and per guest (5 / 10 minutes, #14);
+gallery shares per IP (20 / minute) and per guest (10 / hour, #16).
 Each action counts separately (limits in `src/lib/rate-limit-keys.ts`). It is a
 fixed-window counter: an atomic upsert on `(key, window_start)`, so every
 serverless instance shares one count (the old in-memory map counted per
@@ -226,14 +227,33 @@ anon/authenticated. `/api/wall` validates, runs the stop-word filter
 posting, flipped in the Table Editor. Moderation: delete the row in the
 Table Editor (ADR-009 human fallback). Suite: `supabase/tests/wall_acceptance.sql`.
 
-## Open items
+## Gallery (0012, issue #16)
 
-- **#6 DAL implications**: on `charm_picks`, `.select('id')` after an
-  insert still works (`id` is select-granted), but any query touching
-  `session_id` — `.eq('session_id', ...)`, `.select('session_id')` —
-  is now a permission error. The client stores its session token
-  locally (localStorage) and keeps pick ids from insert responses; it
-  never queries by session. Nothing in src/ touches the DB yet.
+0012 drops `charm_picks` and `delete_pick()`: nothing ever wrote to the
+table (0 rows live, 2026-11-04) and its anon INSERT grant was a public write
+path with no rate limit. (Their tests T7/T8/T8b/T8c left the RLS suite.)
+
+`outputs` stores `activity_id` (`^[a-z0-9-]{1,40}$`), `payload` (the
+module's `serialize()` form, 1..512 chars), `owner_hash` and `created_at`,
+unique per (owner, activity, payload) so sharing twice keeps one row.
+`/api/outputs` always uses the live module, parses the payload with it,
+requires a finished output (`shareable`), stores the re-serialized form and
+takes a per-IP (20 / minute) + per-guest (10 / hour) slot. The gallery
+renders each row with the module named in its `activity_id`, so a module
+swap leaves old rows readable; rows with an unknown module or a payload that
+no longer parses are skipped.
+
+| Test | Assertion | Result |
+|---|---|---|
+| O1 | anon cannot execute the output functions or read `outputs`; `charm_picks` is gone | PASS (local replay) |
+| O2 | save returns an id; same owner + payload returns the same id; another owner gets its own | PASS (local replay) |
+| O3 | bad owner / activity id / empty or 513-char payload → NULL, nothing stored | PASS (local replay) |
+| O4 | a `retired-module` row still lists; the activity filter works | PASS (local replay) |
+| O5 | `mine` only for the owner; `owner_hash` not returned | PASS (local replay) |
+| O6 | stranger / null / unknown id cannot delete; owner can | PASS (local replay) |
+| O7 | list limit clamped | PASS (local replay) |
+
+## Open items
 
 - Vercel env vars landed with the #15 deploy: `NEXT_PUBLIC_SUPABASE_URL`
   + anon key (client/reads), `SUPABASE_SERVICE_ROLE_KEY` server-side only

@@ -1,6 +1,7 @@
 import type { ActivityModule } from "../types";
 import { CharmBuilder } from "./charm-builder";
 import { parsePicks, serializePicks, type Picks } from "./picks";
+import { CharmBuilderPreview, shareablePicks } from "./preview";
 
 export const charmBuilder: ActivityModule<Picks> = {
   id: "charm-builder",
@@ -8,4 +9,6 @@ export const charmBuilder: ActivityModule<Picks> = {
   Component: CharmBuilder,
   parse: parsePicks,
   serialize: serializePicks,
+  shareable: shareablePicks,
+  Preview: CharmBuilderPreview,
 };
