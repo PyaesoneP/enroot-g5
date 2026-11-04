@@ -261,7 +261,7 @@ export async function wallOpen(): Promise<boolean | null> {
   }
 }
 
-// Saved outputs / gallery (issue #16, migration 0012). The payload is the
+// Saved outputs / gallery (issue #16, migration 0013). The payload is the
 // module's own serialized form, validated by the module before saving.
 export type SavedOutput = { id: string; activityId: string; payload: string; createdAt: string; mine: boolean };
 

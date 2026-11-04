@@ -101,7 +101,7 @@ begin
   end;
 end $$;
 
--- T7/T8/T8b/T8c tested charm_picks + delete_pick(), which migration 0012
+-- T7/T8/T8b/T8c tested charm_picks + delete_pick(), which migration 0013
 -- dropped (the gallery uses `outputs`; see outputs_acceptance.sql, O1-O8).
 
 -- T10 (0004): live_count_visible=false -> RPC returns NULL (review #3)

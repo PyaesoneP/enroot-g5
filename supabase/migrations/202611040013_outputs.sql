@@ -32,7 +32,11 @@ create index outputs_created_idx on public.outputs (created_at desc);
 
 alter table public.outputs enable row level security;
 revoke all on table public.outputs from public, anon, authenticated;
-grant select, delete on table public.outputs to service_role;  -- ops only
+-- Ops only. Supabase's default privileges hand service_role everything on
+-- a new table live (found on wall_posts, 0012), so revoke the writes
+-- explicitly: rows only arrive through output_save()'s checks.
+revoke insert, update, truncate, references, trigger on table public.outputs from service_role;
+grant select, delete on table public.outputs to service_role;
 
 -- Saves one output; returns its id, or the existing row's id when this
 -- owner already shared the same payload. NULL = bad arguments.

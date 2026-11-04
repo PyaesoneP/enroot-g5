@@ -1,4 +1,4 @@
--- Acceptance tests for saved outputs / the gallery (issue #16, 0012).
+-- Acceptance tests for saved outputs / the gallery (issue #16, 0013).
 -- Pure SQL, fully rolled back, owners prefixed "test-" — re-runnable on the
 -- live schema:  supabase db query --linked -f supabase/tests/outputs_acceptance.sql
 
@@ -6,6 +6,23 @@ reset role;
 begin;
 
 -- O1: anon / authenticated cannot touch outputs; charm_picks is gone.
+-- Privileges asserted directly (a failed write alone could be RLS).
+do $$
+declare r text; p text;
+begin
+  foreach r in array array['anon', 'authenticated'] loop
+    foreach p in array array['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE'] loop
+      if has_table_privilege(r, 'public.outputs', p) then
+        raise exception 'O1 FAIL: % holds % on outputs', r, p;
+      end if;
+    end loop;
+  end loop;
+  foreach p in array array['INSERT', 'UPDATE', 'TRUNCATE'] loop
+    if has_table_privilege('service_role', 'public.outputs', p) then
+      raise exception 'O1 FAIL: service_role holds % on outputs', p;
+    end if;
+  end loop;
+end $$;
 set role anon;
 do $$
 begin
@@ -37,7 +54,7 @@ begin
   if to_regclass('public.charm_picks') is not null then
     raise exception 'O1 FAIL: charm_picks still exists';
   end if;
-  raise notice 'O1 PASS: anon denied outputs; charm_picks dropped';
+  raise notice 'O1 PASS: no anon/authenticated privileges, no service_role writes; charm_picks dropped';
 end $$;
 reset role;
 

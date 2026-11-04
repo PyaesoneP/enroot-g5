@@ -174,7 +174,7 @@ export run by hand with the service-role key. It isn't app code.)
 |---|---|---|
 | `rsvp` | anonymous attendance sign-ups | insert: anon; select: none (counts via C3b); update/delete: owner token |
 | `wall_posts` | friendship messages (built, 0011) | no anon grants; post/list/delete via service-role definer functions after C3's guardrails; delete only when the owner hash matches |
-| `outputs` | saved interactive results, each with `activity_id` + serialized payload (built, 0012) | no anon grants; save/list/delete via service-role definer functions; delete only when the owner hash matches |
+| `outputs` | saved interactive results, each with `activity_id` + serialized payload (built, 0013) | no anon grants; save/list/delete via service-role definer functions; delete only when the owner hash matches |
 | `scores` | game/trivia scores | insert: anon (rate-limited); select: anon (leaderboard); update/delete: owner token |
 
 **Key traits:**

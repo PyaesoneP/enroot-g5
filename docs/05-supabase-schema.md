@@ -11,7 +11,7 @@
 | Table | Holds | Personal data? | Who touches it |
 |---|---|---|---|
 | `rsvps` | nickname, group size, vibe, bracelet picks, consent record | **yes** (nickname + consent timestamp) | **no public writes at all** — sign-ups go through `submit_rsvp()` (service_role only, 0007); service-role reads/purges |
-| `outputs` | gallery entries: `activity_id` + the module's serialized payload (≤ 512) + owner hash (0012, #16; replaces `charm_picks`) | no (no name or caption, team decision 2026-11-04) | **no grants** to anon/authenticated; only via `output_save()` / `output_list()` / `output_delete()` / `output_activities()`, service_role only |
+| `outputs` | gallery entries: `activity_id` + the module's serialized payload (≤ 512) + owner hash (0013, #16; replaces `charm_picks`) | no (no name or caption, team decision 2026-11-04) | **no grants** to anon/authenticated; only via `output_save()` / `output_list()` / `output_delete()` / `output_activities()`, service_role only |
 | `guest_tokens` | event-day check-in codes, **hashed** | no | service-role only; anon/authenticated fully revoked |
 | `event_config` | singleton: capacity, live-count toggle, registration toggle | no | anon read; service-role write |
 | `wall_posts` | friendship wall: optional name (≤ 40), message (≤ 280), owner hash (0011, #14) | **yes** (optional name + free text, public) | **no grants** to anon/authenticated; only via `wall_post()` / `wall_list()` / `wall_delete()`, service_role only; service_role SELECT/DELETE for ops (0012 revokes the INSERT/UPDATE/TRUNCATE Supabase's defaults had granted) |
@@ -227,9 +227,9 @@ anon/authenticated. `/api/wall` validates, runs the stop-word filter
 posting, flipped in the Table Editor. Moderation: delete the row in the
 Table Editor (ADR-009 human fallback). Suite: `supabase/tests/wall_acceptance.sql`.
 
-## Gallery (0012, issue #16)
+## Gallery (0013, issue #16)
 
-0012 drops `charm_picks` and `delete_pick()`: nothing ever wrote to the
+0013 drops `charm_picks` and `delete_pick()`: nothing ever wrote to the
 table (0 rows live, 2026-11-04) and its anon INSERT grant was a public write
 path with no rate limit. (Their tests T7/T8/T8b/T8c left the RLS suite.)
 
@@ -245,7 +245,7 @@ no longer parses are skipped.
 
 | Test | Assertion | Result |
 |---|---|---|
-| O1 | anon cannot execute the output functions or read `outputs`; `charm_picks` is gone | PASS (local replay) |
+| O1 | anon/authenticated hold no privilege on `outputs` and cannot execute the functions; service_role cannot INSERT/UPDATE/TRUNCATE; `charm_picks` is gone | PASS (local replay) |
 | O2 | save returns an id; same owner + payload returns the same id; another owner gets its own | PASS (local replay) |
 | O3 | bad owner / activity id / empty or 513-char payload → NULL, nothing stored | PASS (local replay) |
 | O4 | a `retired-module` row still lists; the activity filter works | PASS (local replay) |
