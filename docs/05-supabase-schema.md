@@ -138,7 +138,7 @@ count could make a wrongly-accepted insert print PASS), and assert:
 | R9 | `rate_limit_clear()` resets a key that was pushed past its max | PASS |
 | R4b | anon cannot execute `rate_limit_purge` / `rate_limit_clear` | PASS |
 | orch | `scripts/rate-limit-check.mjs`: reserve/release/fail-open orchestration with a fake store (8 cases, incl. separate counters per action) | PASS |
-| W1 | anon/authenticated hold no privilege on `wall_posts` (asserted with `has_table_privilege`) and cannot execute the functions; service_role cannot INSERT/UPDATE/TRUNCATE (0012) | PASS (local replay) |
+| W1 | anon/authenticated hold no privilege on `wall_posts` (asserted with `has_table_privilege`) and cannot execute the functions; service_role has SELECT/DELETE but not INSERT/UPDATE/TRUNCATE (0012) | PASS (local replay) |
 | W2 | named, unnamed, 40-char name + 280-char body stored | PASS (local replay) |
 | W3 | empty / blank / 281-char body, 41-char / blank name, bad owner → `invalid`, nothing stored | PASS (local replay) |
 | W4 | `mine` true only for the caller's posts; `owner_hash` not returned | PASS (local replay) |
@@ -155,11 +155,22 @@ create temp table as `postgres` → anon privileges `NONE`.
 
 Replay locally: `docker run -e POSTGRES_PASSWORD=test -p 5544:5432 -d
 postgres:17-alpine`, create roles `anon`/`authenticated`/`service_role`
-(`service_role` with `bypassrls`), apply all migration files, run the three
-test files (`rls_acceptance`, `submit_rsvp_acceptance`,
-`rate_limit_acceptance`). The replay starts deny-by-default (unlike live Supabase), so
-it is what caught the un-codified `service_role` grants — now written
-into 0007.
+(`service_role` with `bypassrls`), then **seed Supabase's default grants**
+before migrating, so the replay starts from what a live project hands new
+tables:
+
+```sql
+alter default privileges for role postgres in schema public
+  grant all on tables to anon, authenticated, service_role;
+```
+
+Apply all migration files and run the five test files (`rls_acceptance`,
+`submit_rsvp_acceptance`, `rate_limit_acceptance`, `wall_acceptance`,
+`outputs_acceptance`). With the seed, a missing revoke (0004/0005 for
+anon, 0012/0013 for service_role writes) fails W1/O1 locally instead of
+passing trivially. Before 2026-11-04 the replay was deny-by-default, which
+caught the un-codified `service_role` grants (now in 0007) but hid the
+live default grants that 0012 revokes.
 
 ## Deliberate deviations from issue #4's draft sketch
 

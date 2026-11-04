@@ -26,6 +26,13 @@ begin
       raise exception 'W1 FAIL: service_role holds % on wall_posts', p;
     end if;
   end loop;
+  -- ...and still reads and deletes, which the ops scripts and the 19 Dec
+  -- purge need (the definer functions don't, so W2-W8 can't catch this).
+  foreach p in array array['SELECT', 'DELETE'] loop
+    if not has_table_privilege('service_role', 'public.wall_posts', p) then
+      raise exception 'W1 FAIL: service_role lost % on wall_posts', p;
+    end if;
+  end loop;
 end $$;
 set role anon;
 do $$
@@ -55,7 +62,7 @@ begin
     raise exception 'W1 FAIL: anon inserted into wall_posts';
   exception when insufficient_privilege then null;
   end;
-  raise notice 'W1 PASS: no anon/authenticated table privileges, no service_role writes; anon cannot post, list, delete, read or insert';
+  raise notice 'W1 PASS: no anon/authenticated table privileges, service_role SELECT/DELETE only; anon cannot post, list, delete, read or insert';
 end $$;
 reset role;
 
