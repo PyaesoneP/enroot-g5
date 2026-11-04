@@ -187,7 +187,7 @@ counts shown.
 | F-04 | 004, 008, 009 | #14 (built: `/wall`, migration 0011), #13 | M2 |
 | F-05 | 005 | #9, #10 | M1 |
 | F-05a | 003, 005 | #10, #15 | M1 |
-| F-06 | 004, 005 | #16 | M2 |
+| F-06 | 004, 005 | #16 (built: `/gallery`, migration 0013) | M2 |
 | F-07 | 008 | #13 (cookie + sign-up limit), #14 (delete own) | M1 / M2 |
 | F-08 | 009 | #11 (sign-up), #14 (wall: stop-words, limits) | M1 / M2 |
 | F-09 | 006, 010 | #18, #19 | M2 |
