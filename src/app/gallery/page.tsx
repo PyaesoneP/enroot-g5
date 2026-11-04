@@ -14,7 +14,11 @@ export const metadata: Metadata = {
 };
 
 const SHOWN = 48;
+// The database clamps both lists at 200. Reaching 200 own entries takes
+// 20 hours of sharing at the per-guest limit (10 / hour), so "Your
+// bracelets" is complete in practice, not by construction.
 const MINE_MAX = 200;
+const LIST_MAX = 200;
 
 // Renders a stored row with the module named in its own activity_id
 // (ADR-005), not the live one, so a module swap leaves old entries
@@ -63,18 +67,24 @@ function Cards({ cards }: { cards: ReturnType<typeof renderable> }) {
 
 const sectionHeading = "font-display text-2xl font-semibold [font-variation-settings:'SOFT'_100]";
 
-// Saved outputs gallery (F-06, #16). "Your bracelets" lists every entry
-// this device shared, however old (each with Remove); "Everyone's" is the
-// newest page of the rest.
+// Saved outputs gallery (F-06, #16). "Your bracelets" lists the entries
+// this device shared (up to 200, each with Remove); "Everyone's" is the
+// newest page of everyone else's.
 export default async function GalleryPage({ searchParams }: PageProps<"/gallery">) {
   const owner = ownerFromCookie((await cookies()).get(GUEST_COOKIE)?.value);
   const requested = (await searchParams).activity;
   const activities = await outputActivities();
   const filter = typeof requested === "string" && activities.includes(requested) ? requested : null;
-  const [rows, mine] = await Promise.all([listOutputs(owner, filter, SHOWN), listMyOutputs(owner, MINE_MAX)]);
+  const mine = await listMyOutputs(owner, MINE_MAX);
+  // Own rows are shown in their own section, so fetch enough to still fill
+  // a page of other people's after dropping them (PR #42 re-review).
+  const rows = await listOutputs(owner, filter, Math.min(LIST_MAX, SHOWN + (mine?.length ?? 0)));
 
   const myCards = renderable(mine ?? []);
-  const cards = renderable((rows ?? []).filter((r) => !r.mine));
+  // If the own list failed (null), keep own rows in the main grid, where
+  // they still carry Remove, instead of hiding them everywhere.
+  const others = (rows ?? []).filter((r) => mine === null || !r.mine).slice(0, SHOWN);
+  const cards = renderable(others);
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col px-6 pt-10 sm:pt-16">
@@ -134,7 +144,7 @@ export default async function GalleryPage({ searchParams }: PageProps<"/gallery"
           ) : (
             <Cards cards={cards} />
           )}
-          {rows !== null && rows.length === SHOWN && (
+          {others.length === SHOWN && (
             <p className="mt-4 text-xs text-muted">Showing the newest {SHOWN}.</p>
           )}
         </div>
