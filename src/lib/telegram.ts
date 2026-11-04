@@ -1,7 +1,6 @@
 // Thin Telegram Bot API client (ADR-010). Server-only: the token never
 // leaves server env. Env is read per call so the build succeeds without it.
 import "server-only";
-import { timingSafeEqual } from "node:crypto";
 import type { Post } from "@/lib/bot";
 
 function token(): string {
@@ -35,13 +34,4 @@ export async function sendPost(chatId: string, post: Post): Promise<void> {
   } else {
     await call("sendMessage", { chat_id: chatId, text: post.text });
   }
-}
-
-// Constant-time comparison for webhook / cron secrets. An unset secret
-// never matches, so a missing env var fails closed.
-export function secretMatches(given: string | null, expected: string | undefined): boolean {
-  if (!given || !expected) return false;
-  const a = Buffer.from(given);
-  const b = Buffer.from(expected);
-  return a.length === b.length && timingSafeEqual(a, b);
 }
