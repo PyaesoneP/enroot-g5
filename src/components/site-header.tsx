@@ -15,7 +15,7 @@ export function SiteHeader() {
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-6 py-3">
         <Link href="/" className="flex items-center gap-2.5">
           <span className="relative block h-8 w-10 shrink-0">
-            <Image src="/charms/c55.webp" alt="" fill sizes="40px" unoptimized className="object-contain" />
+            <Image src="/charms/n21.webp" alt="" fill sizes="40px" unoptimized className="object-contain" />
           </span>
           <span className="whitespace-nowrap font-display text-lg font-semibold leading-tight [font-variation-settings:'SOFT'_100]">
             {event.name}
