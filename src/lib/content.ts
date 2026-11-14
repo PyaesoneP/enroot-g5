@@ -41,7 +41,9 @@ export type ActivityContent = {
 export type VibeId = (typeof charms.vibes)[number]["id"];
 
 export type CharmCategory = { id: string; label: string };
-export type Charm = { id: string; label: string; category: string };
+// botSkip: on the table and in the builder, but never the bot's charm of
+// the day (the label is posted to the cohort channel).
+export type Charm = { id: string; label: string; category: string; botSkip?: boolean };
 // A pairing group: a few style families. Each family belongs to one vibe.
 export type Vibe = { id: string; label: string; categories: string[]; blurb: string };
 
@@ -50,6 +52,8 @@ export type Vibe = { id: string; label: string; categories: string[]; blurb: str
 export type CharmsContent = {
   intro: string;
   note: string;
+  // Shown in the builder when the link names charms that no longer exist.
+  staleLink: string;
   // Under the copy button: what the bracelet link does.
   shareHint: string;
   // The gallery refused a share because the bracelet isn't finished.

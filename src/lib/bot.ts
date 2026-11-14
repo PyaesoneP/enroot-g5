@@ -49,7 +49,11 @@ export function charmForDate(date: string) {
   const dayIndex = dayDiff(bot.window.start, date);
   const n = charms.charms.length;
   const step = gcd(STEP, n) === 1 ? STEP : 1;
-  const charm = charms.charms[(((dayIndex * step) % n) + n) % n];
+  // A charm marked botSkip gives its day to the next one in the list, so
+  // the other days keep the charm they already had.
+  let at = (((dayIndex * step) % n) + n) % n;
+  for (let tries = 0; charms.charms[at].botSkip && tries < n; tries++) at = (at + 1) % n;
+  const charm = charms.charms[at];
   const lines = bot.friendshipLines;
   const line = lines[((dayIndex % lines.length) + lines.length) % lines.length];
   return { charm, line };

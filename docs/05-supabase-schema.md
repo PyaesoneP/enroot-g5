@@ -67,7 +67,8 @@
   checks `registration_open` and `sum(group_size) + incoming <= capacity`
   under a `FOR UPDATE` lock on the singleton, returning
   `closed`/`full`/`short (spots_left)` instead of storing (0007 counts
-  **people**, not rows; 0008 fails closed if the config row is missing
+  **people**, not rows; 0015 sets `capacity` to 35, down from 60, to match
+  the charms ordered; 0008 fails closed if the config row is missing
   and drops the old anon insert policy + `rsvp_insert_allowed()`, which
   guarded a write path 0007 had revoked — service_role bypasses RLS, so
   the policy never applied to the definer insert). Consent is enforced

@@ -17,7 +17,7 @@ declare r record; before int; after int;
 begin
   before := current_setting('s.base')::int;
   select * into r from public.submit_rsvp('alice', 1, 'sweet',
-        '[{"id":"c27","slot":0},{"id":"c30","slot":1}]'::jsonb);
+        '[{"id":"n27","slot":0},{"id":"n30","slot":1}]'::jsonb);
   if r.status <> 'ok' then raise exception 'S1 FAIL: valid submit returned %', r.status; end if;
   select * into r from public.submit_rsvp('bob', 2, 'bold', null);
   if r.status <> 'ok' then raise exception 'S1 FAIL: group-2 submit returned %', r.status; end if;
@@ -130,7 +130,7 @@ begin
 end $$;
 reset role;
 insert into public.event_config (id, capacity, live_count_visible, registration_open)
-  values (true, 60, true, true);
+  values (true, 35, true, true);
 set role service_role;
 
 -- S6: hidden count -> NULL even for service_role.

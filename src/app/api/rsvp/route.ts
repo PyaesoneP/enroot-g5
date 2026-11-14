@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { VibeId } from "@/lib/content";
-import { parsePicks, vibeOf } from "@/activities/charm-builder/picks";
+import { hasUnknownIds, parsePicks, vibeOf } from "@/activities/charm-builder/picks";
 import { rsvp } from "@/lib/db";
 import { release, reserve } from "@/lib/rate-limit";
 import { requestIdentity } from "@/lib/identity";
@@ -38,6 +38,15 @@ export async function POST(req: Request) {
   // Picks arrive in the builder's URL format; parsePicks sanitises (unknown
   // ids, dupes, bad slots dropped, capped at pickCount). Vibe is derived
   // from the parsed picks, exactly as the builder shows it.
+  // A tab loaded before a catalogue change sends ids this build does not
+  // know. Dropping them would store the sign-up with no vibe and no picks
+  // while the page says "You're on the list", so refuse and ask for a reload.
+  if (typeof b.picks === "string" && hasUnknownIds(b.picks)) {
+    return NextResponse.json(
+      { error: "The charms have changed since this page loaded. Reload the page, pick your charms again, then sign up." },
+      { status: 409 },
+    );
+  }
   const picks = typeof b.picks === "string" ? parsePicks(b.picks) : null;
   const vibe = vibeOf(picks ?? []);
   // Only complete bracelets are stored — same rule the consent text
