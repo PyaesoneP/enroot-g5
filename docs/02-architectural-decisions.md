@@ -214,6 +214,13 @@ friendship bracelets), and module v1 changed from "What stress ball are you?"
 to "Make your bracelet" (a charm picker). The interface above did not
 change; the cost was copy, SRS and issue edits only (SRS section 9).
 
+**Implementation note (2026-11-04, #16).** The contract gained two members:
+`shareable(output)` (is it finished enough for the gallery?) and
+`Preview` (how one stored output looks on a gallery card). The registry in
+`src/activities/index.ts` keeps retired modules registered next to the live
+one; the gallery renders each stored row (`outputs.activity_id` +
+`payload`) with the module named in it, and skips rows it cannot render.
+
 ---
 
 ## ADR-006 - One shared data store for the site and the bot

@@ -260,3 +260,101 @@ export async function wallOpen(): Promise<boolean | null> {
     return null;
   }
 }
+
+// Saved outputs / gallery (issue #16, migration 0013). The payload is the
+// module's own serialized form, validated by the module before saving.
+export type SavedOutput = { id: string; activityId: string; payload: string; createdAt: string; mine: boolean };
+
+// The id (new, or the existing one if this owner already shared the same
+// payload), or null on failure.
+export async function saveOutput(owner: string, activityId: string, payload: string): Promise<string | null> {
+  try {
+    const { data, error } = await getServiceClient().rpc("output_save", {
+      p_owner: owner,
+      p_activity: activityId,
+      p_payload: payload,
+    });
+    if (error || typeof data !== "string") {
+      console.error("[gallery] output_save failed:", error?.code, error?.message ?? "no id returned");
+      return null;
+    }
+    return data;
+  } catch (e) {
+    console.error("[gallery] output_save threw:", e instanceof Error ? e.message : e);
+    return null;
+  }
+}
+
+// Newest first; activityId null = every activity. null = store error.
+export async function listOutputs(
+  owner: string | null,
+  activityId: string | null,
+  limit: number,
+): Promise<SavedOutput[] | null> {
+  try {
+    const { data, error } = await getServiceClient().rpc("output_list", {
+      p_owner: owner,
+      p_activity: activityId,
+      p_limit: limit,
+    });
+    if (error || !Array.isArray(data)) {
+      console.error("[gallery] output_list failed:", error?.code, error?.message);
+      return null;
+    }
+    return (
+      data as { id: string; activity_id: string; payload: string; created_at: string; mine: boolean }[]
+    ).map((r) => ({ id: r.id, activityId: r.activity_id, payload: r.payload, createdAt: r.created_at, mine: r.mine }));
+  } catch (e) {
+    console.error("[gallery] output_list threw:", e instanceof Error ? e.message : e);
+    return null;
+  }
+}
+
+// Every entry this owner shared, however old (0014): the gallery's "Your
+// bracelets" section, so Remove stays reachable after an entry drops off
+// the newest page. [] for no owner; null = store error.
+export async function listMyOutputs(owner: string | null, limit: number): Promise<SavedOutput[] | null> {
+  if (!owner) return [];
+  try {
+    const { data, error } = await getServiceClient().rpc("output_list_mine", { p_owner: owner, p_limit: limit });
+    if (error || !Array.isArray(data)) {
+      console.error("[gallery] output_list_mine failed:", error?.code, error?.message);
+      return null;
+    }
+    return (data as { id: string; activity_id: string; payload: string; created_at: string }[]).map((r) => ({
+      id: r.id,
+      activityId: r.activity_id,
+      payload: r.payload,
+      createdAt: r.created_at,
+      mine: true,
+    }));
+  } catch (e) {
+    console.error("[gallery] output_list_mine threw:", e instanceof Error ? e.message : e);
+    return null;
+  }
+}
+
+// Activity ids that have outputs ([] on failure: the filter just hides).
+export async function outputActivities(): Promise<string[]> {
+  try {
+    const { data, error } = await getServiceClient().rpc("output_activities", undefined);
+    return !error && Array.isArray(data) ? (data as string[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+// true = removed; false = not yours / not found; null = store error.
+export async function deleteOutput(owner: string, id: string): Promise<boolean | null> {
+  try {
+    const { data, error } = await getServiceClient().rpc("output_delete", { p_owner: owner, p_id: id });
+    if (error) {
+      console.error("[gallery] output_delete failed:", error.code, error.message);
+      return null;
+    }
+    return data === true;
+  } catch (e) {
+    console.error("[gallery] output_delete threw:", e instanceof Error ? e.message : e);
+    return null;
+  }
+}

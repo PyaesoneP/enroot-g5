@@ -7,6 +7,7 @@ import { event } from "@/lib/content";
 const links = [
   { href: "/activity", label: "How it works" },
   { href: "/wall", label: "Wall" },
+  { href: "/gallery", label: "Gallery" },
 ];
 
 export function SiteHeader() {
