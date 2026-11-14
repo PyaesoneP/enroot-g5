@@ -6,7 +6,7 @@ import { useState } from "react";
 import { charms } from "@/lib/content";
 import { SignupForm } from "@/components/signup-form";
 import { Bracelet } from "./bracelet";
-import { move, nextFreeSlot, parsePicks, place, serializePicks, vibeOf, type Picks } from "./picks";
+import { hasUnknownIds, move, nextFreeSlot, parsePicks, place, serializePicks, vibeOf, type Picks } from "./picks";
 
 const PARAM = "charms";
 const labels = new Map(charms.charms.map((c) => [c.id, c.label]));
@@ -14,6 +14,8 @@ const labels = new Map(charms.charms.map((c) => [c.id, c.label]));
 export function CharmBuilder() {
   const searchParams = useSearchParams();
   const [picks, setPicks] = useState<Picks>(() => parsePicks(searchParams.get(PARAM)) ?? []);
+  // The link named charms that are gone (an older share link or bot post).
+  const [stale] = useState(() => hasUnknownIds(searchParams.get(PARAM)));
   const [category, setCategory] = useState<string | null>(null);
   // A link the visitor tapped: the next charm goes there, or, if it holds a
   // charm, the next tapped link receives it.
@@ -86,7 +88,13 @@ export function CharmBuilder() {
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[360px_1fr] lg:items-start">
+    <>
+      {stale && (
+        <p className="mb-6 rounded-2xl bg-blush p-4 text-sm" role="status">
+          {charms.staleLink}
+        </p>
+      )}
+      <div className="grid gap-8 lg:grid-cols-[360px_1fr] lg:items-start">
       {/* Bracelet + picks */}
       <section className="flex flex-col gap-4 rounded-3xl border border-line bg-surface p-5 lg:sticky lg:top-20">
         <div className="relative">
@@ -201,6 +209,7 @@ export function CharmBuilder() {
           })}
         </ul>
       </section>
-    </div>
+      </div>
+    </>
   );
 }

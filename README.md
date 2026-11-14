@@ -107,6 +107,11 @@ Telegram bot (server only, production; see below):
 | `TELEGRAM_WEBHOOK_SECRET` | random string; passed to `setWebhook` as `secret_token` |
 | `CRON_SECRET` | random string; Vercel sends it to the cron routes as `Authorization: Bearer` |
 
+Sign-ups are capped at 35 people (the sum of group sizes), set in
+`event_config.capacity` by migration 0015 and enforced in `submit_rsvp()`.
+Past the cap the form answers "All spots are taken"; walk-ins are still
+welcome. To change it: `update event_config set capacity = <n>`.
+
 Known limitation (accepted for the event): duplicate sign-ups are not
 blocked — reloading and submitting again adds another row. The rate
 limits below bound it, and walk-ins mean a double row skews planning,
@@ -169,7 +174,7 @@ curl -H "Authorization: Bearer $CRON_SECRET" \
 ```
 
 Drop `dryRun=1` to really post (the date override still applies).
-After adding or replacing a charm, re-run `node scripts/charms-to-photo.mjs`.
+After adding or replacing a charm, re-run `node scripts/charms-resize.mjs` (every image must be 240 x 197 for the bracelet links to line up), then `node scripts/charms-to-photo.mjs`.
 
 ## Deploy
 

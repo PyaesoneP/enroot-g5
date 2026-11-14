@@ -60,7 +60,8 @@ free tiers of Vercel and Supabase.
   door. Revisit if it does not work on the day.
 - **F-03 Sign-up (RSVP).** A sign-up form (name optional, group size, and the
   visitor's bracelet picks with their vibe, F-05a) so the team can plan
-  tables, charm stock and headcount. Walk-ins remain possible; sign-up is a planning tool, not a gate.
+  tables, charm stock and headcount. Sign-ups are capped at 35 people (`event_config.capacity`, counted
+  as the sum of group sizes), which is what the ordered charms cover at 4 each. Walk-ins remain possible; sign-up is a planning tool, not a gate.
   A **live sign-up count** is displayed on the landing page.
   *Evidence: 56% of bot-survey respondents (18 of 32) wanted a live RSVP count; the
   EPF sizes materials for 30 participants (30 base bracelets, 120 charms).*

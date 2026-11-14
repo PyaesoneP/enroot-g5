@@ -31,7 +31,7 @@ export function placeAtDefaults(ids: string[]): Picks {
   return ids.slice(0, charms.pickCount).map((id, i) => ({ id, slot: defaultSlots[i] }));
 }
 
-// "c44@0,c30@1,c58@9" -> placements. An entry without "@slot" (older links)
+// "n08@0,n12@1,n18@9" -> placements. An entry without "@slot" (older links)
 // takes the next default slot. Unknown ids, bad or taken slots, and repeats
 // are dropped, and the list is capped at pickCount, so a hand-edited or stale
 // link still renders something sensible.
@@ -57,6 +57,14 @@ export function parsePicks(input: string | null): Picks | null {
   }
   const result = picks.slice(0, charms.pickCount).sort(bySlot);
   return result.length > 0 ? result : null;
+}
+
+// True when the string names a charm that is not in the catalogue: a link
+// or an open tab from before the catalogue changed. parsePicks drops such
+// ids silently, so callers that must not lose picks check this first.
+export function hasUnknownIds(input: string | null): boolean {
+  if (!input) return false;
+  return input.split(",").some((entry) => !known.has(entry.split("@")[0]));
 }
 
 export function serializePicks(picks: Picks): string {
